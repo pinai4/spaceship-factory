@@ -1,0 +1,8 @@
+type: object
+properties:
+  code:
+    type: integer
+    description: HTTP error code
+  message:
+    type: string
+    description: Error description

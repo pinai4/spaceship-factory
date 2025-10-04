@@ -1,0 +1,50 @@
+type: object
+required:
+  - order_uuid
+  - user_uuid
+  - part_uuids
+  - total_price
+  - status
+properties:
+  order_uuid:
+    type: string
+    description: Order ID
+    format: uuid
+    example: "123e4567-e89b-12d3-a456-426614174000"
+  user_uuid:
+    type: string
+    description: User ID
+    format: uuid
+    example: "123e4567-e89b-12d3-a456-426614174000"
+  part_uuids:
+    type: array
+    items:
+      type: string
+      description: Part ID
+      format: uuid
+      example: "123e4567-e89b-12d3-a456-426614174000"
+  total_price:
+    type: number
+    format: float
+    description: Total Price
+    example: 9.99
+  transaction_uuid:
+    type: string
+    description: Transaction ID
+    format: uuid
+    example: "123e4567-e89b-12d3-a456-426614174000"
+  payment_method:
+    type: string
+    enum:
+      - "UNKNOWN"
+      - "CARD"
+      - "SBP"
+      - "CREDIT_CARD"
+      - "INVESTOR_MONEY"
+    description: Payment Method
+    example: "CARD"
+  status:
+    type: string
+    enum: [ "PENDING_PAYMENT", "PAID", "CANCELLED" ]
+    description: Status
+    example: "PAID"
