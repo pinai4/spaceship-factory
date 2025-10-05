@@ -5,24 +5,29 @@ package payment.v1;
 
 option go_package = "github.com/pinai4/microservices-course-project/shared/pkg/proto/payment/v1;payment_v1";
 
+// PaymentService provides API for managing order payments
 service PaymentService {
+  // PayOrder processes order payment
   rpc PayOrder(PayOrderRequest) returns (PayOrderResponse);
 }
 
+// PaymentMethod payment method that is used in process of order payment
+enum PaymentMethod {
+  PAYMENT_METHOD_UNSPECIFIED = 0;
+  PAYMENT_METHOD_CARD = 1;
+  PAYMENT_METHOD_SBP = 2;
+  PAYMENT_METHOD_CREDIT_CARD = 3;
+  PAYMENT_METHOD_INVESTOR_MONEY = 4;
+}
+
+// PayOrderRequest request to process order payment
 message PayOrderRequest {
   string order_uuid = 1;
   string user_uuid = 2;
   PaymentMethod payment_method = 3;
 }
 
-enum PaymentMethod {
-  UNKNOWN = 0;
-  CARD = 1;
-  SBP = 2;
-  CREDIT_CARD = 3;
-  INVESTOR_MONEY = 4;
-}
-
+// PayOrderResponse response to request to process order payment
 message PayOrderResponse {
   string transaction_uuid = 1;
 }
