@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+// Package inventory.v1 contains API for managing parts (details).
+package inventory.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/pinai4/microservices-course-project/shared/pkg/proto/inventory/v1;inventory_v1";
+
+// InventoryService provides API for managing parts (details).
+service InventoryService {
+  // GetPart returns part (detail) by UUID.
+  rpc GetPart(GetPartRequest) returns (GetPartResponse);
+
+  // ListParts returns filtered list of parts.
+  rpc ListParts(ListPartsRequest) returns (ListPartsResponse);
+}
+
+// Represents a part category.
+enum Category {
+  CATEGORY_UNSPECIFIED = 0;
+  CATEGORY_ENGINE = 1;
+  CATEGORY_FUEL = 2;
+  CATEGORY_PORTHOLE = 3;
+  CATEGORY_WING = 4;
+}
+
+// Represents a part dimensions.
+message Dimensions {
+  // length in cm
+  double length = 1;
+  // width in cm
+  double width = 2;
+  // height in cm
+  double height = 3;
+  // weight in kg
+  double weight = 4;
+}
+
+// Represents a part manufacturer.
+message Manufacturer {
+  string name = 1;
+  string country = 2;
+  string website = 3;
+}
+
+// Represents a flexible value that can store various types.
+message Value {
+  oneof kind {
+    string string_value = 1;
+    int64 int64_value = 2;
+    double double_value = 3;
+    bool bool_value = 4;
+
+  }
+}
+
+// Represents a part (detail) in the system.
+message Part {
+  string uuid = 1;
+  string name = 2;
+  string description = 3;
+  double price = 4;
+  int64 stock_quantity = 5;
+  Category category = 6;
+  Dimensions dimensions = 7;
+  Manufacturer manufacturer = 8;
+  repeated string tags = 9;
+  map<string, Value> metadata = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// Represents a parts filter.
+message PartsFilter {
+  repeated string uuids = 1;
+  repeated string names = 2;
+  repeated Category categories = 3;
+  repeated string manufacturer_countries = 4;
+  repeated string tags = 5;
+}
+
+// Represents GetPart method request
+message GetPartRequest {
+   string uuid = 1;
+}
+
+// Represents GetPart method response
+message GetPartResponse {
+  Part part = 1;
+}
+
+// Represents ListParts method request
+message ListPartsRequest {
+  PartsFilter filter = 1;
+}
+
+// Represents ListParts method response
+message ListPartsResponse {
+  repeated Part parts = 1;
+}
