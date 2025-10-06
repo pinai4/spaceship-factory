@@ -22,7 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const grpcPort = 50052
+const grpcPort = 50051
 
 var PartAlreadyExistsError = errors.New("part already exists")
 

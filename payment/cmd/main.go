@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-const grpcPort = 50051
+const grpcPort = 50052
 
 type paymentService struct {
 	paymentV1.UnimplementedPaymentServiceServer
