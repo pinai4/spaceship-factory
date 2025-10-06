@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"sync"
 	"syscall"
 	"time"
@@ -16,6 +18,10 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	orderV1 "github.com/pinai4/microservices-course-project/shared/pkg/openapi/order/v1"
+	inventoryV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/inventory/v1"
+	paymentV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/payment/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -23,18 +29,21 @@ const (
 	// HTTP server timeouts
 	readHeaderTimeout = 5 * time.Second
 	shutdownTimeout   = 10 * time.Second
+
+	inventoryServerAddress = "localhost:50051"
+	paymentServerAddress   = "localhost:50052"
 )
 
 var OrderAlreadyExistsError = errors.New("order already exists")
 
 type OrderStorage struct {
-	mu    sync.RWMutex
-	order map[string]*orderV1.Order
+	mu     sync.RWMutex
+	orders map[string]*orderV1.Order
 }
 
 func NewOrderStorage() *OrderStorage {
 	return &OrderStorage{
-		order: make(map[string]*orderV1.Order),
+		orders: make(map[string]*orderV1.Order),
 	}
 }
 
@@ -43,11 +52,11 @@ func (s *OrderStorage) CreateOrder(order *orderV1.Order) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, ok := s.order[order.OrderUUID.String()]; ok {
+	if _, ok := s.orders[order.OrderUUID.String()]; ok {
 		return OrderAlreadyExistsError
 	}
 
-	s.order[order.OrderUUID.String()] = order
+	s.orders[order.OrderUUID.String()] = order
 
 	return nil
 }
@@ -57,7 +66,7 @@ func (s *OrderStorage) GetOrder(id uuid.UUID) *orderV1.Order {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	order, ok := s.order[id.String()]
+	order, ok := s.orders[id.String()]
 	if !ok {
 		return nil
 	}
@@ -70,22 +79,59 @@ func (s *OrderStorage) UpdateOrder(id uuid.UUID, order *orderV1.Order) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.order[id.String()] = order
+	s.orders[id.String()] = order
 }
 
 // OrderHandler implement interface orderV1.Handler for handling Order API http requests
 type OrderHandler struct {
-	storage *OrderStorage
+	storage         *OrderStorage
+	inventoryClient inventoryV1.InventoryServiceClient
+	paymentClient   paymentV1.PaymentServiceClient
 	//orderV1.UnimplementedHandler
 }
 
-func NewOrderHandler(storage *OrderStorage) *OrderHandler {
+func NewOrderHandler(
+	storage *OrderStorage,
+	inventoryClient inventoryV1.InventoryServiceClient,
+	paymentClient paymentV1.PaymentServiceClient,
+) *OrderHandler {
 	return &OrderHandler{
-		storage: storage,
+		storage:         storage,
+		inventoryClient: inventoryClient,
+		paymentClient:   paymentClient,
 	}
 }
 
 func (h *OrderHandler) CreateOrder(ctx context.Context, req *orderV1.CreateOrderRequest) (orderV1.CreateOrderRes, error) {
+	if len(req.PartUuids) == 0 {
+		return &orderV1.BadRequestError{
+			Code:    400,
+			Message: "parts list is empty",
+		}, nil
+	}
+	// check the availability of the parts in stock
+	checkPartIDs := make([]string, len(req.PartUuids))
+	for i, p := range req.PartUuids {
+		checkPartIDs[i] = p.String()
+	}
+
+	resp, err := h.inventoryClient.ListParts(context.TODO(), &inventoryV1.ListPartsRequest{
+		Filter: &inventoryV1.PartsFilter{
+			Uuids: checkPartIDs,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("inventory service error: %v", err)
+	}
+	if len(resp.GetParts()) != len(checkPartIDs) {
+		return nil, fmt.Errorf("ordered parts are absent from stock")
+	}
+	for _, p := range resp.GetParts() {
+		if !slices.Contains(checkPartIDs, p.GetUuid()) {
+			return nil, fmt.Errorf("ordered parts are absent from stock")
+		}
+	}
+	/////////
 	orderID := uuid.New()
 	var totalPrice float32 = 9.99
 
@@ -137,14 +183,34 @@ func (h *OrderHandler) ProcessOrderPayment(
 		}, nil
 	}
 
-	transactionID := uuid.New()
-	order.TransactionUUID.SetTo(transactionID)
+	parsePaymentMethod := func(s string) paymentV1.PaymentMethod {
+		if val, ok := paymentV1.PaymentMethod_value[s]; ok {
+			return paymentV1.PaymentMethod(val)
+		}
+		return paymentV1.PaymentMethod_PAYMENT_METHOD_UNSPECIFIED
+	}
+
+	resp, err := h.paymentClient.PayOrder(context.TODO(), &paymentV1.PayOrderRequest{
+		OrderUuid:     params.OrderUUID.String(),
+		UserUuid:      order.UserUUID.String(),
+		PaymentMethod: parsePaymentMethod(fmt.Sprintf("PAYMENT_METHOD_%s", req.GetPaymentMethod())),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("payment service error: %v", err)
+	}
+
+	tranID, err := uuid.Parse(resp.GetTransactionUuid())
+	if err != nil {
+		return nil, fmt.Errorf("transaction uuid parse error: %v", err)
+	}
+
+	order.TransactionUUID.SetTo(tranID)
 	order.Status = orderV1.OrderStatusPAID
 	order.PaymentMethod.SetTo(orderV1.OrderPaymentMethod(req.GetPaymentMethod()))
 	//h.storage.UpdateOrder(order.OrderUUID, order)
 
 	return &orderV1.ProcessOrderPaymentResponse{
-		TransactionUUID: transactionID,
+		TransactionUUID: tranID,
 	}, nil
 }
 
@@ -183,7 +249,45 @@ func (h *OrderHandler) NewError(ctx context.Context, err error) *orderV1.Generic
 func main() {
 	storage := NewOrderStorage()
 
-	orderHandler := NewOrderHandler(storage)
+	////////////////
+	////////////////
+	conn1, err := grpc.NewClient(
+		inventoryServerAddress,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Printf("failed to connect: %v\n", err)
+		return
+	}
+	defer func() {
+		if cerr := conn1.Close(); cerr != nil {
+			log.Printf("failed to close connect: %v", cerr)
+		}
+	}()
+
+	// Create inventory gRPC client
+	inventoryClient := inventoryV1.NewInventoryServiceClient(conn1)
+	////////////////
+	conn2, err := grpc.NewClient(
+		paymentServerAddress,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Printf("failed to connect: %v\n", err)
+		return
+	}
+	defer func() {
+		if cerr := conn2.Close(); cerr != nil {
+			log.Printf("failed to close connect: %v", cerr)
+		}
+	}()
+
+	// Create payment gRPC client
+	paymentClient := paymentV1.NewPaymentServiceClient(conn2)
+	//////////////////
+	//////////////////
+
+	orderHandler := NewOrderHandler(storage, inventoryClient, paymentClient)
 
 	// Create OpenAPI server
 	orderServer, err := orderV1.NewServer(orderHandler)

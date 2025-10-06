@@ -37,6 +37,7 @@ func PrinterInterceptor() grpc.UnaryServerInterceptor {
 		if err == nil {
 			if r, ok := resp.(*paymentV1.PayOrderResponse); ok && r != nil {
 				log.Printf("Payment was successful, %s\n", r.GetTransactionUuid())
+				//log.Printf("Request: %#v\n", req)
 			}
 		}
 
