@@ -10,9 +10,10 @@ import (
 	"syscall"
 
 	"github.com/google/uuid"
-	paymentV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/payment/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	paymentV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/payment/v1"
 )
 
 const grpcPort = 50052
@@ -37,7 +38,7 @@ func PrinterInterceptor() grpc.UnaryServerInterceptor {
 		if err == nil {
 			if r, ok := resp.(*paymentV1.PayOrderResponse); ok && r != nil {
 				log.Printf("Payment was successful, %s\n", r.GetTransactionUuid())
-				//log.Printf("Request: %#v\n", req)
+				// log.Printf("Request: %#v\n", req)
 			}
 		}
 

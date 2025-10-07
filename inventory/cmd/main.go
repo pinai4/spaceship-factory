@@ -14,17 +14,18 @@ import (
 
 	"github.com/go-faster/errors"
 	"github.com/google/uuid"
-	inventoryV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/inventory/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	inventoryV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/inventory/v1"
 )
 
 const grpcPort = 50051
 
-var PartAlreadyExistsError = errors.New("part already exists")
+var ErrPartAlreadyExists = errors.New("part already exists")
 
 type PartStorage struct {
 	mu    sync.RWMutex
@@ -43,7 +44,7 @@ func (s *PartStorage) AddPart(part *inventoryV1.Part) error {
 	defer s.mu.Unlock()
 
 	if _, ok := s.parts[part.Uuid]; ok {
-		return PartAlreadyExistsError
+		return ErrPartAlreadyExists
 	}
 
 	s.parts[part.Uuid] = part
@@ -122,7 +123,8 @@ func (s *inventoryService) GetPart(ctx context.Context, request *inventoryV1.Get
 	if part == nil {
 		return nil, status.Errorf(
 			codes.NotFound,
-			fmt.Sprintf("Part with ID '%s' not found", request.GetUuid()),
+			"Part with ID '%s' not found",
+			request.GetUuid(),
 		)
 	}
 
@@ -135,7 +137,7 @@ func (s *inventoryService) ListParts(ctx context.Context, request *inventoryV1.L
 	return &inventoryV1.ListPartsResponse{Parts: parts}, nil
 }
 
-func seed(storage *PartStorage) {
+func seed(storage *PartStorage) error {
 	now := timestamppb.New(time.Now())
 
 	part1 := &inventoryV1.Part{
@@ -165,6 +167,9 @@ func seed(storage *PartStorage) {
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
+	if err := storage.AddPart(part1); err != nil {
+		return err
+	}
 
 	part2 := &inventoryV1.Part{
 		Uuid:          uuid.NewString(),
@@ -193,12 +198,24 @@ func seed(storage *PartStorage) {
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
+	if err := storage.AddPart(part2); err != nil {
+		return err
+	}
 
-	_ = storage.AddPart(part1)
-	_ = storage.AddPart(part2)
+	return nil
 }
 
 func main() {
+	// Init storage
+	storage := NewPartStorage()
+	if err := seed(storage); err != nil {
+		log.Printf("failed to seed: %v\n", err)
+		return
+	}
+
+	// Register our service
+	service := newInventoryService(storage)
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
 	if err != nil {
 		log.Printf("failed to listen: %v\n", err)
@@ -207,13 +224,6 @@ func main() {
 
 	// Create GRPC server
 	s := grpc.NewServer()
-
-	//Init storage
-	storage := NewPartStorage()
-	seed(storage)
-
-	// Register our service
-	service := newInventoryService(storage)
 
 	inventoryV1.RegisterInventoryServiceServer(s, service)
 

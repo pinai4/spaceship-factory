@@ -1,0 +1,250 @@
+version: '3'
+
+# Project global vars
+vars:
+  GO_VERSION: '1.24'
+  GOLANGCI_LINT_VERSION: 'v2.1.5'
+  GCI_VERSION: 'v0.13.6'
+  GOFUMPT_VERSION: 'v0.8.0'
+  BUF_VERSION: '1.57.2'
+  PROTOC_GEN_GO_VERSION: 'v1.36.10'
+  PROTOC_GEN_GO_GRPC_VERSION: 'v1.5.1'
+  OGEN_VERSION: 'v1.15.1'
+  YQ_VERSION: 'v4.45.2'
+
+  BIN_DIR: '{{.ROOT_DIR}}/bin'
+  GOLANGCI_LINT: '{{.BIN_DIR}}/golangci-lint'
+  GCI: '{{.BIN_DIR}}/gci'
+  GOFUMPT: '{{.BIN_DIR}}/gofumpt'
+  BUF: '{{.BIN_DIR}}/buf'
+  OGEN: '{{.BIN_DIR}}/ogen'
+  YQ: '{{.BIN_DIR}}/yq'
+  PROTOC_GEN_GO: '{{.BIN_DIR}}/protoc-gen-go'
+  PROTOC_GEN_GO_GRPC: '{{.BIN_DIR}}/protoc-gen-go-grpc'
+
+  REDOCLY_DOCKER_IMG: 'redocly/cli:2.2.2'
+  OPEN_API_ORDER_V1_SPEC_DIR: '{{.ROOT_DIR}}/shared/api/order/v1'
+  OPEN_API_ORDER_V1_SPEC_ROOT_FILE: 'order.openapi.yaml'
+  OPEN_API_ORDER_V1_BUNDLE_DIR: '{{.ROOT_DIR}}/shared/api/bundles'
+  OPEN_API_ORDER_V1_BUNDLE_FILE: 'order.openapi.v1.bundle.yaml'
+
+  OPEN_API_FILES: '{{.ROOT_DIR}}/shared/api/bundles'
+
+  MODULES: assembly inventory order payment platform iam notification
+
+tasks:
+  install-formatters:
+    desc: "Installs formatters gci and gofumpt into ./bin"
+    summary: |
+      This task checks whether the gofumpt and gci formatters are present in the bin directory.
+      If they are missing, they will be installed automatically with the specified versions.
+      
+      Uses:
+        - gofumpt: for Go code formatting
+        - gci: for Go import sorting
+    cmds:
+      - |
+        [ -f {{.GOFUMPT}} ] || {
+          echo '📦 Installing gofumpt {{.GOFUMPT_VERSION}}...'
+          GOBIN={{.BIN_DIR}} go install mvdan.cc/gofumpt@{{.GOFUMPT_VERSION}}
+        }
+        [ -f {{.GCI}} ] || {
+          echo '📦 Installing gci {{.GCI_VERSION}}...'
+          GOBIN={{.BIN_DIR}} go install github.com/daixiang0/gci@{{.GCI_VERSION}}
+        }
+    status:
+      - test -x {{.GOFUMPT}}
+      - test -x {{.GCI}}
+
+  format:
+    desc: "Formats the entire project with gofumpt + gci, excluding mocks"
+    summary: |
+      Formats all Go files in the project using gofumpt for code standardization
+      and gci for import sorting, excluding files inside mocks directories.
+      
+      Tools used:
+        - gofumpt: for code formatting standardization
+        - gci: for import sorting by standard groups
+    deps: [ install-formatters ]
+    cmds:
+      - |
+        echo "🧼 Formatting with gofumpt ..."
+        
+        for module in {{.MODULES}}; do
+          if [ -d "$module" ]; then
+            echo "🧼 Formatting $module"
+            find $module -type f -name '*.go' ! -path '*/mocks/*' -exec {{.GOFUMPT}} -extra -w {} +
+          fi
+        done
+      - |
+        echo "🎯 Sorting imports with gci ..."
+        
+        for module in {{.MODULES}}; do
+          if [ -d "$module" ]; then
+            echo "🎯 Sorting imports in $module"
+            find $module -type f -name '*.go' ! -path '*/mocks/*' -exec {{.GCI}} write -s standard -s default -s "prefix(github.com/pinai4/microservices-course-project)" {} +
+          fi
+        done
+
+  install-golangci-lint:
+    desc: "Installs golangci-lint into the bin directory"
+    summary: |
+      Checks for golangci-lint in the bin directory.
+      If it is missing, it will be installed automatically via go install.
+      
+      Version installed: {{.GOLANGCI_LINT_VERSION}}
+    cmds:
+      - |
+        [ -f {{.GOLANGCI_LINT}} ] || {
+          mkdir -p {{.BIN_DIR}}
+          echo "📦 Installing golangci-lint {{.GOLANGCI_LINT_VERSION}}..."
+          GOBIN={{.BIN_DIR}} go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}}
+        }
+    status:
+      - test -x {{.GOLANGCI_LINT}}
+
+  lint:
+    desc: "Runs golangci-lint for all modules"
+    summary: |
+      Runs golangci-lint for all project modules.
+      The linter checks code quality and best practice compliance.
+      The check also includes security analysis via gosec (built into golangci-lint).
+      
+      Dependencies:
+        - install-golangci-lint: automatically installs the linter
+        - format: formats the code before linting
+    deps: [ install-golangci-lint, format ]
+    vars:
+      MODULES: '{{.MODULES}}'
+      GOLANGCI_LINT: '{{.GOLANGCI_LINT}}'
+    cmds:
+      - |
+        set -e
+        ERR=0
+        echo "🔍 Linting all modules ..."
+        for mod in {{.MODULES}}; do
+          if [ -d "$mod" ]; then
+            echo "🔍 Linting $mod module"
+            {{.GOLANGCI_LINT}} run $mod/... --config=.golangci.yml || ERR=1
+          fi
+        done
+        exit $ERR
+
+  install-buf:
+    desc: "Installs Buf into the bin directory"
+    cmds:
+      - |
+        [ -f {{.BUF}} ] || {
+          mkdir -p {{.BIN_DIR}} tmp-buf
+          curl -sSL \
+            "https://github.com/bufbuild/buf/releases/download/v{{.BUF_VERSION}}/buf-$(uname -s)-$(uname -m).tar.gz" \
+            | tar -xz -C tmp-buf
+          mv tmp-buf/buf/bin/buf {{.BUF}}
+          rm -rf tmp-buf
+          chmod +x {{.BUF}}
+        }
+
+  proto:install-plugins:
+    desc: "Installs protoc plugins into the bin directory"
+    cmds:
+      - |
+        [ -f {{.PROTOC_GEN_GO}} ] || {
+          echo '📦 Installing protoc-gen-go...'
+          GOBIN={{.BIN_DIR}} go install google.golang.org/protobuf/cmd/protoc-gen-go@{{.PROTOC_GEN_GO_VERSION}}
+        }
+        [ -f {{.PROTOC_GEN_GO_GRPC}} ] || {
+          echo '📦 Installing protoc-gen-go-grpc...'
+          GOBIN={{.BIN_DIR}} go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@{{.PROTOC_GEN_GO_GRPC_VERSION}}
+        }
+
+  proto:gen:
+    deps: [ install-buf, proto:install-plugins, proto:lint ]
+    desc: "Generates Go code from .proto files"
+    dir: shared/proto
+    cmds:
+      - '{{.BUF}} generate'
+
+  proto:lint:
+    deps: [ install-buf, proto:install-plugins ]
+    desc: "Checks .proto files for style compliance"
+    dir: shared/proto
+    cmds:
+      - '{{.BUF}} lint'
+
+  redocly-cli-docker:order-v1-bundle:
+    desc: "Assembles OpenAPI specification with external refs into a fully bundled single YAML file"
+    cmds:
+      - |
+        mkdir -p {{.OPEN_API_ORDER_V1_BUNDLE_DIR}}
+        
+        docker run --rm \
+        -v {{.OPEN_API_ORDER_V1_SPEC_DIR}}:/spec \
+        -v {{.OPEN_API_ORDER_V1_BUNDLE_DIR}}:/output \
+        -u $(id -u):$(id -g) \
+        {{.REDOCLY_DOCKER_IMG}} \
+        bundle /spec/{{.OPEN_API_ORDER_V1_SPEC_ROOT_FILE}} \
+        -o /output/{{.OPEN_API_ORDER_V1_BUNDLE_FILE}}
+
+  redocly-cli-docker:bundle:
+    desc: "Bundle all OpenAPI schemas into unified files via local redocly"
+    cmds:
+      - task: redocly-cli-docker:order-v1-bundle
+
+  ogen:install:
+    desc: "Downloads ogen into the bin directory"
+    cmds:
+      - |
+        [ -f {{.OGEN}} ] || {
+          mkdir -p {{.BIN_DIR}}
+          GOBIN={{.BIN_DIR}} go install github.com/ogen-go/ogen/cmd/ogen@{{.OGEN_VERSION}}
+        }
+
+  ogen:gen:
+    desc: "Generates Go code from all OpenAPI declarations with x-ogen"
+    deps: [ ogen:install, yq:install ]
+    cmds:
+      - task: redocly-cli-docker:bundle
+      - |
+        find {{.OPEN_API_FILES}} -name '*.yaml' -o -name '*.yml' | while read -r file; do
+          if [ -f "$file" ] && grep -q 'x-ogen:' "$file"; then
+            echo "🚀 Generating from: $file"
+            target=$({{.YQ}} e '."x-ogen".target' "$file")
+            package=$({{.YQ}} e '."x-ogen".package' "$file")
+            echo "📁 Target: $target"
+            echo "📦 Package: $package"
+            {{.OGEN}} \
+              --target "$target" \
+              --package "$package" \
+              --clean \
+              "$file" || exit 1
+          fi
+        done
+
+  gen:
+    desc: "Generates all proto and OpenAPI declarations"
+    cmds:
+      - task: proto:gen
+      - task: ogen:gen
+
+  deps:update:
+    desc: "Updates dependencies in go.mod for all modules"
+    cmds:
+      - |
+        echo "🔄 Updating dependencies in go.work"
+        go work sync
+        echo "🔄 Updating dependencies in go.mod for all modules"
+        for mod in {{.MODULES}}; do
+          if [ -d "$mod" ]; then
+            echo "🔄 Updating dependencies in $mod"
+            (cd "$mod" && go mod tidy) || exit 1
+          fi
+        done
+
+  yq:install:
+    desc: "Installs yq into bin/ if needed"
+    cmds:
+      - |
+        [ -f {{.YQ}} ] || {
+          echo '📦 Installing yq...'
+          GOBIN={{.BIN_DIR}} go install github.com/mikefarah/yq/v4@{{.YQ_VERSION}}
+        }

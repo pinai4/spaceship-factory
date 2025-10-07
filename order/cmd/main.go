@@ -17,11 +17,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	orderV1 "github.com/pinai4/microservices-course-project/shared/pkg/openapi/order/v1"
 	inventoryV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/inventory/v1"
 	paymentV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/payment/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -34,7 +35,7 @@ const (
 	paymentServerAddress   = "localhost:50052"
 )
 
-var OrderAlreadyExistsError = errors.New("order already exists")
+var ErrOrderAlreadyExists = errors.New("order already exists")
 
 type OrderStorage struct {
 	mu     sync.RWMutex
@@ -53,7 +54,7 @@ func (s *OrderStorage) CreateOrder(order *orderV1.Order) error {
 	defer s.mu.Unlock()
 
 	if _, ok := s.orders[order.OrderUUID.String()]; ok {
-		return OrderAlreadyExistsError
+		return ErrOrderAlreadyExists
 	}
 
 	s.orders[order.OrderUUID.String()] = order
@@ -87,7 +88,7 @@ type OrderHandler struct {
 	storage         *OrderStorage
 	inventoryClient inventoryV1.InventoryServiceClient
 	paymentClient   paymentV1.PaymentServiceClient
-	//orderV1.UnimplementedHandler
+	// orderV1.UnimplementedHandler
 }
 
 func NewOrderHandler(
@@ -115,13 +116,13 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *orderV1.CreateOrder
 		checkPartIDs[i] = p.String()
 	}
 
-	resp, err := h.inventoryClient.ListParts(context.TODO(), &inventoryV1.ListPartsRequest{
+	resp, err := h.inventoryClient.ListParts(ctx, &inventoryV1.ListPartsRequest{
 		Filter: &inventoryV1.PartsFilter{
 			Uuids: checkPartIDs,
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("inventory service error: %v", err)
+		return nil, fmt.Errorf("inventory service error: %w", err)
 	}
 	if len(resp.GetParts()) != len(checkPartIDs) {
 		return nil, fmt.Errorf("ordered parts are absent from stock")
@@ -190,24 +191,24 @@ func (h *OrderHandler) ProcessOrderPayment(
 		return paymentV1.PaymentMethod_PAYMENT_METHOD_UNSPECIFIED
 	}
 
-	resp, err := h.paymentClient.PayOrder(context.TODO(), &paymentV1.PayOrderRequest{
+	resp, err := h.paymentClient.PayOrder(ctx, &paymentV1.PayOrderRequest{
 		OrderUuid:     params.OrderUUID.String(),
 		UserUuid:      order.UserUUID.String(),
 		PaymentMethod: parsePaymentMethod(fmt.Sprintf("PAYMENT_METHOD_%s", req.GetPaymentMethod())),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("payment service error: %v", err)
+		return nil, fmt.Errorf("payment service error: %w", err)
 	}
 
 	tranID, err := uuid.Parse(resp.GetTransactionUuid())
 	if err != nil {
-		return nil, fmt.Errorf("transaction uuid parse error: %v", err)
+		return nil, fmt.Errorf("transaction uuid parse error: %w", err)
 	}
 
 	order.TransactionUUID.SetTo(tranID)
 	order.Status = orderV1.OrderStatusPAID
 	order.PaymentMethod.SetTo(orderV1.OrderPaymentMethod(req.GetPaymentMethod()))
-	//h.storage.UpdateOrder(order.OrderUUID, order)
+	// h.storage.UpdateOrder(order.OrderUUID, order)
 
 	return &orderV1.ProcessOrderPaymentResponse{
 		TransactionUUID: tranID,
@@ -231,7 +232,7 @@ func (h *OrderHandler) CancelOrder(ctx context.Context, params orderV1.CancelOrd
 	}
 
 	order.Status = orderV1.OrderStatusCANCELLED
-	//h.storage.UpdateOrder(order.OrderUUID, order)
+	// h.storage.UpdateOrder(order.OrderUUID, order)
 
 	return &orderV1.CancelOrderNoContent{}, nil
 }
@@ -292,7 +293,8 @@ func main() {
 	// Create OpenAPI server
 	orderServer, err := orderV1.NewServer(orderHandler)
 	if err != nil {
-		log.Fatalf("OpenAPI server creation error: %v", err)
+		log.Printf("OpenAPI server creation error: %v", err)
+		return
 	}
 
 	r := chi.NewRouter()
