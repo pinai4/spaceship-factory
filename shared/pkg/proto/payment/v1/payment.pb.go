@@ -205,7 +205,7 @@ const file_payment_v1_payment_proto_rawDesc = "" +
 	"\x1aPAYMENT_METHOD_CREDIT_CARD\x10\x03\x12!\n" +
 	"\x1dPAYMENT_METHOD_INVESTOR_MONEY\x10\x042W\n" +
 	"\x0ePaymentService\x12E\n" +
-	"\bPayOrder\x12\x1b.payment.v1.PayOrderRequest\x1a\x1c.payment.v1.PayOrderResponseBWZUgithub.com/pinai4/microservices-course-project/shared/pkg/proto/payment/v1;payment_v1b\x06proto3"
+	"\bPayOrder\x12\x1b.payment.v1.PayOrderRequest\x1a\x1c.payment.v1.PayOrderResponseBLZJgithub.com/pinai4/spaceship-factory/shared/pkg/proto/payment/v1;payment_v1b\x06proto3"
 
 var (
 	file_payment_v1_payment_proto_rawDescOnce sync.Once

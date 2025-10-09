@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	paymentV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/payment/v1"
+	paymentV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/payment/v1"
 )
 
 const grpcPort = 50052

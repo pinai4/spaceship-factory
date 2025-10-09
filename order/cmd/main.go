@@ -20,9 +20,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	orderV1 "github.com/pinai4/microservices-course-project/shared/pkg/openapi/order/v1"
-	inventoryV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/inventory/v1"
-	paymentV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/payment/v1"
+	orderV1 "github.com/pinai4/spaceship-factory/shared/pkg/openapi/order/v1"
+	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
+	paymentV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/payment/v1"
 )
 
 const (

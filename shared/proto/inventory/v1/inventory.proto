@@ -5,7 +5,7 @@ package inventory.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/pinai4/microservices-course-project/shared/pkg/proto/inventory/v1;inventory_v1";
+option go_package = "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1;inventory_v1";
 
 // InventoryService provides API for managing parts (details).
 service InventoryService {

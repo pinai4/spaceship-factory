@@ -100,5 +100,5 @@ formatters: # Code formatters (style checkers)
       sections: # Order of import groups
         - Standard  # Standard library
         - Default   # Third-party dependencies
-        - Prefix(github.com/pinai4/microservices-course-project/)  # Local project imports
+        - Prefix(github.com/pinai4/spaceship-factory/)  # Local project imports
       no-inline-comments: false  # Allow comments after imports (true — forbid them)

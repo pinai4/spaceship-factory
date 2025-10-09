@@ -1,0 +1,223 @@
+version: '3'
+
+vars:
+  GRPCURL_VERSION: 'v1.9.3'
+  BIN_DIR: '{{.ROOT_DIR}}/../bin'
+  GRPCURL: '{{.BIN_DIR}}/grpcurl'
+
+tasks:
+  info:
+    dir: ./../
+    cmds:
+      - echo "OS {{.OS}}"
+      - echo "Architecture {{.ARCH}}"
+      - echo "Current Task {{.TASK}}"
+      - echo "Taskfile Directory {{.TASKFILE_DIR}}"
+      - echo "Root Directory {{.ROOT_DIR}}"
+      - pwd
+      - echo "Working DIR {{.USER_WORKING_DIR}}"
+
+  grpcurl:install:
+    desc: "Installs grpcurl into the bin directory"
+    cmds:
+      - |
+        [ -f {{.GRPCURL}} ] || {
+          echo '📦 Installing grpcurl {{.GRPCURL_VERSION}}...'
+          GOBIN={{.BIN_DIR}} go install github.com/fullstorydev/grpcurl/cmd/grpcurl@{{.GRPCURL_VERSION}}
+        }
+    status:
+      - test -x {{.GRPCURL}}
+
+  test-api:
+    desc: "🧪 Run tests to verify microservice APIs"
+    deps: [ grpcurl:install ]
+    cmds:
+      - |
+        echo "🧪 Testing microservice APIs via gRPC and REST"
+
+        echo "📦 Test 1: Fetching list of parts from Inventory"
+        PARTS_RESPONSE=$({{.GRPCURL}} -plaintext -d '{"filter":{}}' localhost:50051 inventory.v1.InventoryService/ListParts)
+
+        if [[ -z "$PARTS_RESPONSE" || "$PARTS_RESPONSE" == *"error"* ]]; then
+          echo "❌ Failed to retrieve parts list."
+          echo "🔍 Server response: $PARTS_RESPONSE"
+          exit 1
+        fi
+
+        # Extracts the UUID of the first part for further tests
+        PART_UUID=$(echo $PARTS_RESPONSE | grep -o '"uuid": "[^"]*' | head -1 | cut -d'"' -f4)
+        if [ -z "$PART_UUID" ]; then
+          echo "❌ Failed to find part UUID in the response."
+          echo "🔍 Server response: $PARTS_RESPONSE"
+          exit 1
+        fi
+        echo "✅ Successfully received parts list, first UUID: $PART_UUID"
+
+        echo
+        echo "🔍 Test 2: Fetching part information by UUID"
+        PART_RESPONSE=$({{.GRPCURL}} -plaintext -d "{\"uuid\":\"$PART_UUID\"}" localhost:50051 inventory.v1.InventoryService/GetPart)
+
+        if [[ -z "$PART_RESPONSE" || "$PART_RESPONSE" == *"error"* ]]; then
+          echo "❌ Failed to retrieve part information."
+          echo "🔍 Server response: $PART_RESPONSE"
+          exit 1
+        fi
+
+        # Extracts part name
+        PART_NAME=$(echo $PART_RESPONSE | grep -o '"name": "[^"]*' | cut -d'"' -f4)
+        if [ -z "$PART_NAME" ]; then
+          echo "❌ Failed to extract part name from response."
+          echo "🔍 Server response: $PART_RESPONSE"
+          exit 1
+        fi
+        echo "✅ Successfully retrieved part: $PART_NAME"
+
+        echo
+        echo "👤 Test 3: Creating a user for tests"
+        # Generate a unique UUID for the user
+        USER_UUID=$(uuidgen | tr '[:upper:]' '[:lower:]')
+        echo "✅ Generated user UUID: $USER_UUID"
+
+        echo
+        echo "📝 Test 4: Creating an order (REST API)"
+        ORDER_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/v1/orders" \
+          -H "Content-Type: application/json" \
+          -d "{\"user_uuid\":\"$USER_UUID\",\"part_uuids\":[\"$PART_UUID\"]}")
+
+        if [[ -z "$ORDER_RESPONSE" || "$ORDER_RESPONSE" == *"error"* ]]; then
+          echo "❌ Failed to create an order."
+          echo "🔍 Server response: $ORDER_RESPONSE"
+          exit 1
+        fi
+
+        # Extracts order UUID considering possible JSON formats
+        ORDER_UUID=$(echo $ORDER_RESPONSE | grep -o '"order_uuid":"[^"]*' | cut -d'"' -f4)
+        if [ -z "$ORDER_UUID" ]; then
+          ORDER_UUID=$(echo $ORDER_RESPONSE | grep -o '"order_uuid": "[^"]*' | cut -d'"' -f4)
+          if [ -z "$ORDER_UUID" ]; then
+            echo "❌ Failed to extract order UUID from response."
+            echo "🔍 Server response: $ORDER_RESPONSE"
+            exit 1
+          fi
+        fi
+        echo "✅ Successfully created order with UUID: $ORDER_UUID"
+
+        echo
+        echo "📊 Test 5: Checking initial order status (should be PENDING_PAYMENT)"
+        ORDER_INFO_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/v1/orders/$ORDER_UUID")
+
+        if [[ -z "$ORDER_INFO_RESPONSE" || "$ORDER_INFO_RESPONSE" == *"error"* ]]; then
+          echo "❌ Failed to retrieve order information."
+          echo "🔍 Server response: $ORDER_INFO_RESPONSE"
+          exit 1
+        fi
+
+        # Extracts order status considering possible JSON formats
+        ORDER_STATUS=$(echo $ORDER_INFO_RESPONSE | grep -o '"status":"[^"]*' | cut -d'"' -f4)
+        if [ -z "$ORDER_STATUS" ]; then
+          ORDER_STATUS=$(echo $ORDER_INFO_RESPONSE | grep -o '"status": "[^"]*' | cut -d'"' -f4)
+          if [ -z "$ORDER_STATUS" ]; then
+            echo "❌ Failed to extract order status from response."
+            echo "🔍 Server response: $ORDER_INFO_RESPONSE"
+            exit 1
+          fi
+        fi
+
+        # Verify that initial status is PENDING_PAYMENT
+        if [[ "$ORDER_STATUS" != *"PENDING_PAYMENT"* ]]; then
+          echo "❌ Incorrect initial order status. Expected PENDING_PAYMENT, got: $ORDER_STATUS"
+          exit 1
+        fi
+        echo "✅ Initial order status is correct: $ORDER_STATUS"
+
+        echo
+        echo "💰 Test 6: Paying for the order (REST API)"
+        PAY_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/v1/orders/$ORDER_UUID/pay" \
+          -H "Content-Type: application/json" \
+          -d "{\"payment_method\":\"CARD\"}")
+
+        if [[ "$PAY_RESPONSE" == *"error"* ]]; then
+          echo "❌ Error while paying for order."
+          echo "🔍 Server response: $PAY_RESPONSE"
+          exit 1
+        fi
+        echo "✅ Order paid successfully"
+
+        echo
+        echo "📊 Test 7: Checking order status after payment (should be PAID)"
+        ORDER_INFO_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/v1/orders/$ORDER_UUID")
+
+        # Extracts order status
+        ORDER_STATUS=$(echo $ORDER_INFO_RESPONSE | grep -o '"status":"[^"]*' | cut -d'"' -f4)
+        if [ -z "$ORDER_STATUS" ]; then
+          ORDER_STATUS=$(echo $ORDER_INFO_RESPONSE | grep -o '"status": "[^"]*' | cut -d'"' -f4)
+        fi
+
+        # Verify that status changed to PAID
+        if [[ "$ORDER_STATUS" != *"PAID"* && "$ORDER_STATUS" != *"ASSEMBLED"* ]]; then
+          echo "❌ Incorrect order status after payment. Expected PAID or ASSEMBLED, got: $ORDER_STATUS"
+          exit 1
+        fi
+        echo "✅ Order status after payment: $ORDER_STATUS"
+
+        echo
+        echo "📝 Test 8: Creating a second order to cancel (REST API)"
+        ORDER2_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/v1/orders" \
+          -H "Content-Type: application/json" \
+          -d "{\"user_uuid\":\"$USER_UUID\",\"part_uuids\":[\"$PART_UUID\"]}")
+
+        if [[ -z "$ORDER2_RESPONSE" || "$ORDER2_RESPONSE" == *"error"* ]]; then
+          echo "❌ Failed to create second order."
+          echo "🔍 Server response: $ORDER2_RESPONSE"
+          exit 1
+        fi
+
+        # Extracts second order UUID considering possible JSON formats
+        ORDER2_UUID=$(echo $ORDER2_RESPONSE | grep -o '"order_uuid":"[^"]*' | cut -d'"' -f4)
+        if [ -z "$ORDER2_UUID" ]; then
+          ORDER2_UUID=$(echo $ORDER2_RESPONSE | grep -o '"order_uuid": "[^"]*' | cut -d'"' -f4)
+          if [ -z "$ORDER2_UUID" ]; then
+            echo "❌ Failed to extract UUID of second order from response."
+            echo "🔍 Server response: $ORDER2_RESPONSE"
+            exit 1
+          fi
+        fi
+        echo "✅ Successfully created second order with UUID: $ORDER2_UUID"
+
+        # Check its initial status
+        ORDER2_INFO=$(curl -s -X GET "http://localhost:8080/api/v1/orders/$ORDER2_UUID")
+        ORDER2_STATUS=$(echo $ORDER2_INFO | grep -o '"status":"[^"]*' | cut -d'"' -f4)
+        if [ -z "$ORDER2_STATUS" ]; then
+          ORDER2_STATUS=$(echo $ORDER2_INFO | grep -o '"status": "[^"]*' | cut -d'"' -f4)
+        fi
+
+        if [[ "$ORDER2_STATUS" != *"PENDING_PAYMENT"* ]]; then
+          echo "❌ Incorrect initial status of the second order. Expected PENDING_PAYMENT, got: $ORDER2_STATUS"
+          exit 1
+        fi
+        echo "✅ Initial status of second order: $ORDER2_STATUS"
+
+        echo
+        echo "❌ Test 9: Cancel the second order (REST API)"
+        echo "Waiting 2 seconds before cancellation..."
+        sleep 2
+
+        curl -s -X POST "http://localhost:8080/api/v1/orders/$ORDER2_UUID/cancel"
+
+        echo "Checking status after cancellation..."
+
+        ORDER2_INFO=$(curl -s -X GET "http://localhost:8080/api/v1/orders/$ORDER2_UUID")
+        ORDER2_STATUS=$(echo $ORDER2_INFO | grep -o '"status":"[^"]*' | cut -d'"' -f4)
+        if [ -z "$ORDER2_STATUS" ]; then
+          ORDER2_STATUS=$(echo $ORDER2_INFO | grep -o '"status": "[^"]*' | cut -d'"' -f4)
+        fi
+
+        if [[ "$ORDER2_STATUS" != *"CANCELLED"* ]]; then
+          echo "❌ Incorrect status of cancelled order. Expected CANCELLED, got: $ORDER2_STATUS"
+          echo "🔍 Order details: $ORDER2_INFO"
+          exit 1
+        fi
+        echo "✅ Status of second order after cancellation: $ORDER2_STATUS"
+
+        echo
+        echo "🎉 All API tests completed successfully!"

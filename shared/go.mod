@@ -1,4 +1,4 @@
-module github.com/pinai4/microservices-course-project/shared
+module github.com/pinai4/spaceship-factory/shared
 
 go 1.24.0
 

@@ -3,7 +3,7 @@ syntax = "proto3";
 // Package payment.v1 contains API for managing payment operations
 package payment.v1;
 
-option go_package = "github.com/pinai4/microservices-course-project/shared/pkg/proto/payment/v1;payment_v1";
+option go_package = "github.com/pinai4/spaceship-factory/shared/pkg/proto/payment/v1;payment_v1";
 
 // PaymentService provides API for managing order payments
 service PaymentService {

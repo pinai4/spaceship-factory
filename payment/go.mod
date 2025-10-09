@@ -1,12 +1,12 @@
-module github.com/pinai4/microservices-course-project/payment
+module github.com/pinai4/spaceship-factory/payment
 
 go 1.24.0
 
-replace github.com/pinai4/microservices-course-project/shared => ../shared
+replace github.com/pinai4/spaceship-factory/shared => ../shared
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/pinai4/microservices-course-project/shared v0.0.0-00010101000000-000000000000
+	github.com/pinai4/spaceship-factory/shared v0.0.0-00010101000000-000000000000
 	google.golang.org/grpc v1.75.1
 )
 

@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	inventoryV1 "github.com/pinai4/microservices-course-project/shared/pkg/proto/inventory/v1"
+	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
 )
 
 const grpcPort = 50051
