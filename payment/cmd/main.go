@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net"
@@ -9,42 +8,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	paymentV1API "github.com/pinai4/spaceship-factory/payment/internal/api/payment/v1"
+	paymentService "github.com/pinai4/spaceship-factory/payment/internal/service/payment"
 	paymentV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/payment/v1"
 )
 
 const grpcPort = 50052
-
-type paymentService struct {
-	paymentV1.UnimplementedPaymentServiceServer
-}
-
-func (s *paymentService) PayOrder(ctx context.Context, request *paymentV1.PayOrderRequest) (*paymentV1.PayOrderResponse, error) {
-	tranID := uuid.New()
-	return &paymentV1.PayOrderResponse{TransactionUuid: tranID.String()}, nil
-}
-
-func PrinterInterceptor() grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context,
-		req interface{},
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
-	) (interface{}, error) {
-		resp, err := handler(ctx, req)
-		if err == nil {
-			if r, ok := resp.(*paymentV1.PayOrderResponse); ok && r != nil {
-				log.Printf("Payment was successful, %s\n", r.GetTransactionUuid())
-				// log.Printf("Request: %#v\n", req)
-			}
-		}
-
-		return resp, err
-	}
-}
 
 func main() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
@@ -55,13 +27,14 @@ func main() {
 
 	// Create GRPC server
 	s := grpc.NewServer(grpc.ChainUnaryInterceptor(
-		PrinterInterceptor(),
+		paymentV1API.PrinterInterceptor(),
 	))
 
 	// Register our service
-	service := &paymentService{}
+	service := paymentService.NewService()
+	api := paymentV1API.NewAPI(service)
 
-	paymentV1.RegisterPaymentServiceServer(s, service)
+	paymentV1.RegisterPaymentServiceServer(s, api)
 
 	// Enable GRPC reflection to simplify debugging
 	reflection.Register(s)
