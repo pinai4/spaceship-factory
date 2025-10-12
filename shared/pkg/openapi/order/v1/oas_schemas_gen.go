@@ -113,7 +113,7 @@ type CreateOrderResponse struct {
 	// Order ID.
 	OrderUUID uuid.UUID `json:"order_uuid"`
 	// Total Price.
-	TotalPrice float32 `json:"total_price"`
+	TotalPrice float64 `json:"total_price"`
 }
 
 // GetOrderUUID returns the value of OrderUUID.
@@ -122,7 +122,7 @@ func (s *CreateOrderResponse) GetOrderUUID() uuid.UUID {
 }
 
 // GetTotalPrice returns the value of TotalPrice.
-func (s *CreateOrderResponse) GetTotalPrice() float32 {
+func (s *CreateOrderResponse) GetTotalPrice() float64 {
 	return s.TotalPrice
 }
 
@@ -132,7 +132,7 @@ func (s *CreateOrderResponse) SetOrderUUID(val uuid.UUID) {
 }
 
 // SetTotalPrice sets the value of TotalPrice.
-func (s *CreateOrderResponse) SetTotalPrice(val float32) {
+func (s *CreateOrderResponse) SetTotalPrice(val float64) {
 	s.TotalPrice = val
 }
 
@@ -449,7 +449,7 @@ type Order struct {
 	UserUUID  uuid.UUID   `json:"user_uuid"`
 	PartUuids []uuid.UUID `json:"part_uuids"`
 	// Total Price.
-	TotalPrice float32 `json:"total_price"`
+	TotalPrice float64 `json:"total_price"`
 	// Transaction ID.
 	TransactionUUID OptUUID `json:"transaction_uuid"`
 	// Payment Method.
@@ -474,7 +474,7 @@ func (s *Order) GetPartUuids() []uuid.UUID {
 }
 
 // GetTotalPrice returns the value of TotalPrice.
-func (s *Order) GetTotalPrice() float32 {
+func (s *Order) GetTotalPrice() float64 {
 	return s.TotalPrice
 }
 
@@ -509,7 +509,7 @@ func (s *Order) SetPartUuids(val []uuid.UUID) {
 }
 
 // SetTotalPrice sets the value of TotalPrice.
-func (s *Order) SetTotalPrice(val float32) {
+func (s *Order) SetTotalPrice(val float64) {
 	s.TotalPrice = val
 }
 
