@@ -1,0 +1,33 @@
+with-expecter: True
+dir: "{{.InterfaceDir}}/mocks"
+filename: "mock_{{ .InterfaceName | snakecase }}.go"
+outpkg: "mocks"
+mockname: "{{.InterfaceName}}"
+disable-version-string: True
+resolve-type-alias: False
+issue-845-fix: True
+
+packages:
+  github.com/pinai4/spaceship-factory/payment/internal/service:
+    config:
+      include-regex: ".*Service"
+
+  github.com/pinai4/spaceship-factory/inventory/internal/service:
+    config:
+      include-regex: ".*Service"
+
+  github.com/pinai4/spaceship-factory/inventory/internal/repository:
+    config:
+      include-regex: ".*Repository"
+
+  github.com/pinai4/spaceship-factory/order/internal/service:
+    config:
+      include-regex: ".*Service"
+
+  github.com/pinai4/spaceship-factory/order/internal/repository:
+    config:
+      include-regex: ".*Repository"
+
+  github.com/pinai4/spaceship-factory/order/internal/client:
+    config:
+      include-regex: ".*Client"

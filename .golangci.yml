@@ -50,9 +50,10 @@ linters: # List of enabled and disabled linters
     rules: # Local exclusions by path/file/linters
       - path: _test\.go  # For all test files:
         linters:
-          - cyclop     # Skip complexity checks in tests
-          - dupl       # Skip duplicate detection in tests
-          - gosec      # Skip vulnerability scanning in tests
+          - cyclop        # Skip complexity checks in tests
+          - dupl          # Skip duplicate detection in tests
+          - gosec         # Skip vulnerability scanning in tests
+          - containedctx  # Skip checking `context.Context` field types in structs in tests
 
   settings: # Individual settings for specific linters
 

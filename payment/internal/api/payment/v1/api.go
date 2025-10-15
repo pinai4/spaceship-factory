@@ -10,6 +10,8 @@ import (
 	paymentV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/payment/v1"
 )
 
+var _ paymentV1.PaymentServiceServer = (*api)(nil)
+
 type api struct {
 	paymentV1.UnimplementedPaymentServiceServer
 

@@ -35,7 +35,6 @@ func (r *repository) List(_ context.Context, filter model.PartsFilter) ([]model.
 		if len(filter.Names) > 0 && !slices.Contains(filter.Names, part.Name) {
 			continue
 		}
-		// TODO check this case carefully
 		if len(filter.Categories) > 0 && !slices.Contains(filter.Categories, part.Category) {
 			continue
 		}

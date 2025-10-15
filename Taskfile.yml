@@ -11,6 +11,7 @@ vars:
   PROTOC_GEN_GO_GRPC_VERSION: 'v1.5.1'
   OGEN_VERSION: 'v1.15.1'
   YQ_VERSION: 'v4.45.2'
+  MOCKERY_VERSION: 'v2.53.5'
 
   BIN_DIR: '{{.ROOT_DIR}}/bin'
   GOLANGCI_LINT: '{{.BIN_DIR}}/golangci-lint'
@@ -21,6 +22,7 @@ vars:
   YQ: '{{.BIN_DIR}}/yq'
   PROTOC_GEN_GO: '{{.BIN_DIR}}/protoc-gen-go'
   PROTOC_GEN_GO_GRPC: '{{.BIN_DIR}}/protoc-gen-go-grpc'
+  MOCKERY: "{{.BIN_DIR}}/mockery"
 
   REDOCLY_DOCKER_IMG: 'redocly/cli:2.2.2'
   OPEN_API_ORDER_V1_SPEC_DIR: '{{.ROOT_DIR}}/shared/api/order/v1'
@@ -29,6 +31,8 @@ vars:
   OPEN_API_ORDER_V1_BUNDLE_FILE: 'order.openapi.v1.bundle.yaml'
 
   OPEN_API_FILES: '{{.ROOT_DIR}}/shared/api/bundles'
+  COVERAGE_DIR: '{{.ROOT_DIR}}/coverage'
+  COVERAGE_FILE: total.out
 
   MODULES: assembly inventory order payment platform iam notification
 
@@ -248,3 +252,111 @@ tasks:
           echo '📦 Installing yq...'
           GOBIN={{.BIN_DIR}} go install github.com/mikefarah/yq/v4@{{.YQ_VERSION}}
         }
+
+  mockery:install:
+    desc: "Installs mockery into ./bin"
+    cmds:
+      - |
+        [ -f {{.MOCKERY}} ] || {
+          echo '📦 Installing mockery...'
+          GOBIN={{.BIN_DIR}} go install github.com/vektra/mockery/v2@{{.MOCKERY_VERSION}}
+        }
+    status:
+      - test -x {{.MOCKERY}}
+
+  mockery:gen:
+    desc: "Generates interface mocks using mockery"
+    deps: [ mockery:install ]
+    cmds:
+      - |
+        echo '🧪 Generating mocks...'
+        {{.MOCKERY}}
+
+  test-coverage:
+    desc: "Runs tests with coverage for business logic (service/repository), report for each module + overall"
+    cmds:
+      - |
+        echo "🧪 Starting coverage calculation..."
+        rm -rf {{.COVERAGE_DIR}}
+        mkdir -p {{.COVERAGE_DIR}}
+        
+        ERR=0
+        for mod in {{.MODULES}}; do
+          echo "📦 Processing module: $mod"
+        
+          TARGET_PKGS=$(go list ./$mod/... \
+            | grep -E '/(internal/(service|repository))' \
+            | grep -vE '/(mocks|testdata|pkg|api|proto|pb|cmd)' \
+            | paste -sd "," -)
+        
+          if [ -z "$TARGET_PKGS" ]; then
+            echo "⚠️  No suitable packages in $mod"
+            continue
+          fi
+        
+          go test -coverpkg="$TARGET_PKGS" \
+            -coverprofile={{.COVERAGE_DIR}}/$mod.out \
+            -covermode=atomic \
+            $(echo "$TARGET_PKGS" | tr "," " ") || ERR=1
+        done
+        
+        if [ $ERR -ne 0 ]; then
+          echo "❌ Errors occurred during tests"
+          exit $ERR
+        fi
+        
+        echo
+        echo "📊 Coverage per module:"
+        for mod in {{.MODULES}}; do
+          OUTFILE="{{.COVERAGE_DIR}}/$mod.out"
+          if [ -f "$OUTFILE" ]; then
+            printf " • %s: " "$mod"
+            go tool cover -func="$OUTFILE" | tail -n1
+          fi
+        done
+        
+        echo
+        echo "📦 Merging all coverage reports..."
+        {
+          echo "mode: atomic"
+          find {{.COVERAGE_DIR}} -type f -name '*.out' ! -name '{{.COVERAGE_FILE}}' \
+            -exec grep -h -v "^mode:" {} +
+        } > {{.COVERAGE_DIR}}/{{.COVERAGE_FILE}}
+        
+        echo
+        echo "🧾 Overall coverage for all modules:"
+        go tool cover -func={{.COVERAGE_DIR}}/{{.COVERAGE_FILE}} | tail -n1
+
+  coverage:html:
+    desc: "Generates HTML coverage report and opens it in a browser"
+    deps: [ test-coverage ]
+    cmds:
+      - |
+        OUTPUT={{.COVERAGE_DIR}}/coverage.html
+        echo "🌐 Generating HTML report..."
+        go tool cover -html={{.COVERAGE_DIR}}/{{.COVERAGE_FILE}} -o $OUTPUT
+
+        echo "🚀 Opening $OUTPUT"
+        if command -v open &> /dev/null; then
+          open $OUTPUT  # macOS
+        elif command -v xdg-open &> /dev/null; then
+          xdg-open $OUTPUT  # Linux
+        else
+          echo "📂 Report saved to $OUTPUT (open manually)"
+        fi
+
+  test:
+    desc: "Runs unit tests for all modules"
+    summary: |
+      Runs unit tests for the specified project modules.
+      You can specify particular modules via the MODULES variable.
+    cmds:
+      - |
+        ERR=0
+        for mod in {{.MODULES}}; do
+          if [ -d "$mod" ]; then
+            echo "🧪 Testing module $mod"
+            go test -v ./$mod/... || ERR=1
+          fi
+        done
+        exit $ERR
