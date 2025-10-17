@@ -113,7 +113,7 @@ tasks:
       Dependencies:
         - install-golangci-lint: automatically installs the linter
         - format: formats the code before linting
-    deps: [ install-golangci-lint, format ]
+    deps: [ install-golangci-lint ]
     vars:
       MODULES: '{{.MODULES}}'
       GOLANGCI_LINT: '{{.GOLANGCI_LINT}}'
