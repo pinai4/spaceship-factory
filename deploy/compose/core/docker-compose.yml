@@ -1,0 +1,12 @@
+services:
+  placeholder:
+    image: alpine
+    container_name: core-placeholder
+    tty: true
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    name: microservices-net
+    external: false

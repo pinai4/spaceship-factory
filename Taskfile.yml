@@ -360,3 +360,59 @@ tasks:
           fi
         done
         exit $ERR
+
+  up-core:
+    desc: Start core containers
+    dir: deploy/compose/core
+    cmds:
+      - echo "[task] 🚀 Starting core containers"
+      - docker compose up --build --detach
+
+  down-core:
+    desc: Stop and remove core containers
+    dir: deploy/compose/core
+    cmds:
+      - echo "[task] 🛑 Stopping core containers"
+      - docker compose down --volumes
+
+  up-inventory:
+    desc: Start Inventory service and all its dependencies
+    dir: deploy/compose/inventory
+    cmds:
+      - echo "[task] 📦 Starting Inventory with dependencies"
+      - docker compose up --build --detach
+
+  down-inventory:
+    desc: Stop and remove Inventory service and all its dependencies
+    dir: deploy/compose/inventory
+    cmds:
+      - echo "[task] 🛑 Stopping Inventory with dependencies"
+      - docker compose down --volumes
+
+  up-order:
+    desc: Start Order service and all its dependencies
+    dir: deploy/compose/order
+    cmds:
+      - echo "[task] 📦 Starting Order with dependencies"
+      - docker compose up --build --detach
+
+  down-order:
+    desc: Stop and remove Order service and all its dependencies
+    dir: deploy/compose/order
+    cmds:
+      - echo "[task] 🛑 Stopping Order with dependencies"
+      - docker compose down --volumes
+
+  up-all:
+    desc: Start all services sequentially along with their dependencies
+    cmds:
+      - task up-core
+      - task up-inventory
+      - task up-order
+
+  down-all:
+    desc: Stop and remove all services sequentially along with their dependencies
+    cmds:
+      - task down-order
+      - task down-inventory
+      - task down-core
