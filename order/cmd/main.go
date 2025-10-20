@@ -13,13 +13,17 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	orderV1API "github.com/pinai4/spaceship-factory/order/internal/api/order/v1"
 	inventoryV1Client "github.com/pinai4/spaceship-factory/order/internal/client/grpc/inventory/v1"
 	paymentV1Client "github.com/pinai4/spaceship-factory/order/internal/client/grpc/payment/v1"
-	orderRepository "github.com/pinai4/spaceship-factory/order/internal/repository/order"
+	"github.com/pinai4/spaceship-factory/order/internal/migrator"
+	orderRepository "github.com/pinai4/spaceship-factory/order/internal/repository/order/postgres"
 	orderService "github.com/pinai4/spaceship-factory/order/internal/service/order"
 	orderV1 "github.com/pinai4/spaceship-factory/shared/pkg/openapi/order/v1"
 	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
@@ -37,6 +41,41 @@ const (
 )
 
 func main() {
+	ctx := context.Background()
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Printf("failed to load .env file: %v\n", err)
+		return
+	}
+
+	dbURI := os.Getenv("DB_URI")
+
+	db, err := sqlx.Open("pgx", dbURI)
+	if err != nil {
+		log.Printf("failed to open db: %v\n", err)
+		return
+	}
+	defer func() {
+		if errc := db.Close(); errc != nil {
+			log.Printf("failed to close db: %v\n", err)
+		}
+	}()
+
+	if err := db.PingContext(ctx); err != nil {
+		log.Printf("failed to ping db: %v\n", err)
+		return
+	}
+
+	migrationsDir := os.Getenv("MIGRATIONS_DIR")
+	migratorRunner := migrator.NewMigrator(db.DB, migrationsDir)
+
+	err = migratorRunner.Up()
+	if err != nil {
+		log.Printf("failed to run migrations: %v\n", err)
+		return
+	}
+
 	////////////////
 	////////////////
 	conn1, err := grpc.NewClient(
@@ -76,7 +115,7 @@ func main() {
 	//////////////////
 	//////////////////
 
-	repo := orderRepository.NewRepository()
+	repo := orderRepository.NewRepository(db)
 	service := orderService.NewService(
 		repo,
 		paymentV1Client.NewClient(genPaymentClient),

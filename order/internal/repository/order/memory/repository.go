@@ -1,10 +1,10 @@
-package order
+package memory
 
 import (
 	"sync"
 
 	def "github.com/pinai4/spaceship-factory/order/internal/repository"
-	repoModel "github.com/pinai4/spaceship-factory/order/internal/repository/model"
+	repoModel "github.com/pinai4/spaceship-factory/order/internal/repository/order/memory/model"
 )
 
 var _ def.OrderRepository = (*repository)(nil)

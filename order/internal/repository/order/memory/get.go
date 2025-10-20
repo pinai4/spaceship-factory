@@ -1,4 +1,4 @@
-package order
+package memory
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/pinai4/spaceship-factory/order/internal/model"
-	repoConverter "github.com/pinai4/spaceship-factory/order/internal/repository/converter"
+	repoConverter "github.com/pinai4/spaceship-factory/order/internal/repository/order/memory/converter"
 )
 
 func (r *repository) Get(_ context.Context, orderUUID uuid.UUID) (model.Order, error) {

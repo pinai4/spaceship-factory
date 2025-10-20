@@ -1,4 +1,4 @@
-package order_test
+package memory_test
 
 import "github.com/pinai4/spaceship-factory/order/internal/model"
 

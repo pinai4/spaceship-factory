@@ -1,4 +1,4 @@
-package order_test
+package memory_test
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/pinai4/spaceship-factory/order/internal/model"
 	"github.com/pinai4/spaceship-factory/order/internal/repository"
-	"github.com/pinai4/spaceship-factory/order/internal/repository/order"
+	"github.com/pinai4/spaceship-factory/order/internal/repository/order/memory"
 )
 
 type RepositorySuite struct {
@@ -23,7 +23,7 @@ type RepositorySuite struct {
 func (s *RepositorySuite) SetupTest() {
 	s.ctx = context.Background()
 
-	s.repository = order.NewRepository()
+	s.repository = memory.NewRepository()
 }
 
 func (s *RepositorySuite) TearDownTest() {

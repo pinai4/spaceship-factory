@@ -1,10 +1,10 @@
-package order
+package memory
 
 import (
 	"context"
 
 	"github.com/pinai4/spaceship-factory/order/internal/model"
-	repoConverter "github.com/pinai4/spaceship-factory/order/internal/repository/converter"
+	repoConverter "github.com/pinai4/spaceship-factory/order/internal/repository/order/memory/converter"
 )
 
 func (r *repository) Create(_ context.Context, order model.Order) error {

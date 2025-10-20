@@ -2,7 +2,7 @@ package converter
 
 import (
 	"github.com/pinai4/spaceship-factory/order/internal/model"
-	repoModel "github.com/pinai4/spaceship-factory/order/internal/repository/model"
+	repoModel "github.com/pinai4/spaceship-factory/order/internal/repository/order/memory/model"
 )
 
 func OrderToModel(order repoModel.Order) model.Order {
