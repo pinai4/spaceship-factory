@@ -1,4 +1,4 @@
-package part_test
+package memory_test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/pinai4/spaceship-factory/inventory/internal/model"
 	"github.com/pinai4/spaceship-factory/inventory/internal/repository"
-	"github.com/pinai4/spaceship-factory/inventory/internal/repository/part"
+	"github.com/pinai4/spaceship-factory/inventory/internal/repository/part/memory"
 )
 
 type RepositorySuite struct {
@@ -24,7 +24,7 @@ type RepositorySuite struct {
 func (s *RepositorySuite) SetupTest() {
 	s.ctx = context.Background()
 
-	s.repository = part.NewRepository()
+	s.repository = memory.NewRepository()
 }
 
 func (s *RepositorySuite) TearDownTest() {

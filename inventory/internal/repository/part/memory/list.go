@@ -1,11 +1,11 @@
-package part
+package memory
 
 import (
 	"context"
 	"slices"
 
 	"github.com/pinai4/spaceship-factory/inventory/internal/model"
-	repoConverter "github.com/pinai4/spaceship-factory/inventory/internal/repository/converter"
+	repoConverter "github.com/pinai4/spaceship-factory/inventory/internal/repository/part/memory/converter"
 )
 
 func (r *repository) List(_ context.Context, filter model.PartsFilter) ([]model.Part, error) {

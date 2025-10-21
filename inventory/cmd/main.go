@@ -11,13 +11,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
 	inventoryV1API "github.com/pinai4/spaceship-factory/inventory/internal/api/inventory/v1"
 	"github.com/pinai4/spaceship-factory/inventory/internal/model"
 	"github.com/pinai4/spaceship-factory/inventory/internal/repository"
-	partRepository "github.com/pinai4/spaceship-factory/inventory/internal/repository/part"
+	partRepository "github.com/pinai4/spaceship-factory/inventory/internal/repository/part/mongodb"
 	partService "github.com/pinai4/spaceship-factory/inventory/internal/service/part"
 	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
 )
@@ -25,6 +28,16 @@ import (
 const grpcPort = 50051
 
 func seed(repo repository.PartRepository) error {
+	ctx := context.Background()
+
+	list, err := repo.List(ctx, model.PartsFilter{})
+	if err != nil {
+		return err
+	}
+	if len(list) > 0 {
+		return nil
+	}
+
 	now := time.Now()
 
 	part1 := model.Part{
@@ -52,8 +65,9 @@ func seed(repo repository.PartRepository) error {
 			"serial_number": "SN-ENGX200-001",
 		},
 		CreatedAt: now,
+		UpdatedAt: &now,
 	}
-	if err := repo.Add(context.Background(), part1); err != nil {
+	if err := repo.Add(ctx, part1); err != nil {
 		return err
 	}
 
@@ -83,7 +97,7 @@ func seed(repo repository.PartRepository) error {
 		},
 		CreatedAt: now,
 	}
-	if err := repo.Add(context.Background(), part2); err != nil {
+	if err := repo.Add(ctx, part2); err != nil {
 		return err
 	}
 
@@ -91,8 +105,39 @@ func seed(repo repository.PartRepository) error {
 }
 
 func main() {
+	ctx := context.Background()
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Printf("failed to load .env file: %v\n", err)
+		return
+	}
+
+	dbURI := os.Getenv("MONGO_URI")
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(dbURI))
+	if err != nil {
+		log.Printf("failed to connect to database: %v\n", err)
+		return
+	}
+	defer func() {
+		cerr := client.Disconnect(ctx)
+		if cerr != nil {
+			log.Printf("failed to disconnect: %v\n", cerr)
+		}
+	}()
+
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Printf("failed to ping database: %v\n", err)
+		return
+	}
+
+	dbName := os.Getenv("MONGO_INITDB_DATABASE")
+	db := client.Database(dbName)
+
 	// Init repo
-	repo := partRepository.NewRepository()
+	repo := partRepository.NewRepository(db)
 	if err := seed(repo); err != nil {
 		log.Printf("failed to seed: %v\n", err)
 		return

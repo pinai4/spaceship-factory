@@ -1,10 +1,10 @@
-package part
+package memory
 
 import (
 	"sync"
 
 	def "github.com/pinai4/spaceship-factory/inventory/internal/repository"
-	repoModel "github.com/pinai4/spaceship-factory/inventory/internal/repository/model"
+	repoModel "github.com/pinai4/spaceship-factory/inventory/internal/repository/part/memory/model"
 )
 
 var _ def.PartRepository = (*repository)(nil)

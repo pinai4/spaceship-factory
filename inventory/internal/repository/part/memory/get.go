@@ -1,10 +1,10 @@
-package part
+package memory
 
 import (
 	"context"
 
 	"github.com/pinai4/spaceship-factory/inventory/internal/model"
-	repoConverter "github.com/pinai4/spaceship-factory/inventory/internal/repository/converter"
+	repoConverter "github.com/pinai4/spaceship-factory/inventory/internal/repository/part/memory/converter"
 )
 
 func (r *repository) Get(_ context.Context, uuid string) (model.Part, error) {

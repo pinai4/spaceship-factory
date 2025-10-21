@@ -1,4 +1,4 @@
-package part_test
+package memory_test
 
 import (
 	"github.com/google/uuid"
