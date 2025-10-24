@@ -1,22 +1,20 @@
 services:
   mongo-inventory:
-    image: mongo:7.0.5
+    image: ${MONGO_IMAGE_NAME}
     container_name: mongo-inventory
-    environment:
-      MONGO_INITDB_DATABASE: inventory-service
-      MONGO_INITDB_ROOT_USERNAME: inventory-service-user
-      MONGO_INITDB_ROOT_PASSWORD: inventory-service-password
+    env_file:
+      - .env
     volumes:
       - mongo_inventory_data:/data/db
     ports:
-      - "27017:27017"
+      - "${MONGO_EXTERNAL_PORT}:27017"
     healthcheck:
       # MongoDB readiness check: run the ping command via mongosh using login and password
       # --quiet disables extra output so that the result is only "1" on success
       test:
         [
           "CMD-SHELL",
-          "echo 'db.runCommand({ ping: 1 }).ok' | mongosh --quiet -u inventory-service-user -p inventory-service-password --authenticationDatabase admin",
+          "echo 'db.runCommand({ ping: 1 }).ok' | mongosh --quiet -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase ${MONGO_AUTH_DB}",
         ]
       interval: 10s
       timeout: 5s
