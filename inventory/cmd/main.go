@@ -3,178 +3,48 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"net"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-
-	inventoryV1API "github.com/pinai4/spaceship-factory/inventory/internal/api/inventory/v1"
-	"github.com/pinai4/spaceship-factory/inventory/internal/model"
-	"github.com/pinai4/spaceship-factory/inventory/internal/repository"
-	partRepository "github.com/pinai4/spaceship-factory/inventory/internal/repository/part/mongodb"
-	partService "github.com/pinai4/spaceship-factory/inventory/internal/service/part"
-	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
+	"github.com/pinai4/spaceship-factory/inventory/internal/app"
+	"github.com/pinai4/spaceship-factory/inventory/internal/config"
+	"github.com/pinai4/spaceship-factory/platform/pkg/closer"
+	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
 )
 
-const grpcPort = 50051
-
-func seed(repo repository.PartRepository) error {
-	ctx := context.Background()
-
-	list, err := repo.List(ctx, model.PartsFilter{})
-	if err != nil {
-		return err
-	}
-	if len(list) > 0 {
-		return nil
-	}
-
-	now := time.Now()
-
-	part1 := model.Part{
-		UUID:          uuid.Nil.String(),
-		Name:          "Turbo Engine X200",
-		Description:   "High-performance turbo engine suitable for small aircraft.",
-		Price:         125000.50,
-		StockQuantity: 8,
-		Category:      model.CategoryEngine,
-		Dimensions: model.Dimensions{
-			Length: 120.5,
-			Width:  80.2,
-			Height: 95.3,
-			Weight: 450.0,
-		},
-		Manufacturer: model.Manufacturer{
-			Name:    "AeroTech Industries",
-			Country: "USA",
-			Website: "https://aerotech.example.com",
-		},
-		Tags: []string{"engine", "turbo", "aircraft"},
-		Metadata: map[string]any{
-			"power_kw":      980.5,
-			"certified":     true,
-			"serial_number": "SN-ENGX200-001",
-		},
-		CreatedAt: now,
-		UpdatedAt: &now,
-	}
-	if err := repo.Add(ctx, part1); err != nil {
-		return err
-	}
-
-	part2 := model.Part{
-		UUID:          uuid.NewString(),
-		Name:          "Titanium Wing Panel",
-		Description:   "Lightweight titanium alloy wing panel with anti-corrosion coating.",
-		Price:         32000.0,
-		StockQuantity: 25,
-		Category:      model.CategoryWing,
-		Dimensions: model.Dimensions{
-			Length: 250.0,
-			Width:  60.0,
-			Height: 5.0,
-			Weight: 120.0,
-		},
-		Manufacturer: model.Manufacturer{
-			Name:    "SkyMetal Works",
-			Country: "Germany",
-			Website: "https://skymetal.example.com",
-		},
-		Tags: []string{"wing", "titanium", "aircraft"},
-		Metadata: map[string]any{
-			"material":     "Titanium Alloy",
-			"batch_number": 20241001,
-			"is_tested":    true,
-		},
-		CreatedAt: now,
-	}
-	if err := repo.Add(ctx, part2); err != nil {
-		return err
-	}
-
-	return nil
-}
+const configPath = "./deploy/compose/inventory/.env"
 
 func main() {
-	ctx := context.Background()
-
-	err := godotenv.Load(".env")
+	cfg, err := config.Load(configPath)
 	if err != nil {
-		log.Printf("failed to load .env file: %v\n", err)
-		return
+		panic(fmt.Errorf("failed to load config: %w", err))
 	}
 
-	dbURI := os.Getenv("MONGO_URI")
+	appLogger := logger.New(cfg.Logger.Level(), cfg.Logger.AsJSON())
+	appCloser := closer.New(appLogger, syscall.SIGINT, syscall.SIGTERM)
+	appCtx, appCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer appCancel()
+	defer gracefulShutdown(appLogger, appCloser)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(dbURI))
+	a, err := app.New(appCtx, cfg, appCloser, appLogger)
 	if err != nil {
-		log.Printf("failed to connect to database: %v\n", err)
+		appLogger.Error(appCtx, "❌ Failed to create application", logger.Error(err))
 		return
 	}
-	defer func() {
-		cerr := client.Disconnect(ctx)
-		if cerr != nil {
-			log.Printf("failed to disconnect: %v\n", cerr)
-		}
-	}()
 
-	err = client.Ping(ctx, nil)
+	err = a.Run(appCtx)
 	if err != nil {
-		log.Printf("failed to ping database: %v\n", err)
+		appLogger.Error(appCtx, "❌ Error while running application", logger.Error(err))
 		return
 	}
+}
 
-	dbName := os.Getenv("MONGO_INITDB_DATABASE")
-	db := client.Database(dbName)
+func gracefulShutdown(log *logger.Logger, closer *closer.Closer) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	// Init repo
-	repo := partRepository.NewRepository(db)
-	if err := seed(repo); err != nil {
-		log.Printf("failed to seed: %v\n", err)
-		return
+	if err := closer.CloseAll(ctx); err != nil {
+		log.Error(ctx, "❌ Error during shutdown", logger.Error(err))
 	}
-
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
-	if err != nil {
-		log.Printf("failed to listen: %v\n", err)
-		return
-	}
-
-	// Create GRPC server
-	s := grpc.NewServer()
-
-	// Register our service
-	service := partService.NewService(repo)
-	api := inventoryV1API.NewAPI(service)
-
-	inventoryV1.RegisterInventoryServiceServer(s, api)
-
-	// Enable GRPC reflection to simplify debugging
-	reflection.Register(s)
-
-	go func() {
-		log.Printf("🚀 gRPC server listening on %d\n", grpcPort)
-		if err := s.Serve(lis); err != nil {
-			log.Printf("failed to serve: %v\n", err)
-			return
-		}
-	}()
-
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	log.Println("🛑 Shutting down gRPC server...")
-	s.GracefulStop()
-	log.Println("✅ Server stopped")
 }
