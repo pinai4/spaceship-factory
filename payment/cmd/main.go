@@ -1,58 +1,50 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
-	"net"
-	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-
-	paymentV1API "github.com/pinai4/spaceship-factory/payment/internal/api/payment/v1"
-	paymentService "github.com/pinai4/spaceship-factory/payment/internal/service/payment"
-	paymentV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/payment/v1"
+	"github.com/pinai4/spaceship-factory/payment/internal/app"
+	"github.com/pinai4/spaceship-factory/payment/internal/config"
+	"github.com/pinai4/spaceship-factory/platform/pkg/closer"
+	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
 )
 
-const grpcPort = 50052
+const configPath = "./deploy/compose/payment/.env"
 
 func main() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
+	cfg, err := config.Load(configPath)
 	if err != nil {
-		log.Printf("failed to listen: %v\n", err)
+		panic(fmt.Errorf("failed to load config: %w", err))
+	}
+
+	appLogger := logger.New(cfg.Logger.Level(), cfg.Logger.AsJSON())
+	appCloser := closer.New(appLogger, syscall.SIGINT, syscall.SIGTERM)
+	appCtx, appCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer appCancel()
+	defer gracefulShutdown(appLogger, appCloser)
+
+	a, err := app.New(appCtx, cfg, appCloser, appLogger)
+	if err != nil {
+		appLogger.Error(appCtx, "❌ Failed to create application", logger.Error(err))
 		return
 	}
 
-	// Create GRPC server
-	s := grpc.NewServer(grpc.ChainUnaryInterceptor(
-		paymentV1API.PrinterInterceptor(),
-	))
+	err = a.Run(appCtx)
+	if err != nil {
+		appLogger.Error(appCtx, "❌ Error while running application", logger.Error(err))
+		return
+	}
+}
 
-	// Register our service
-	service := paymentService.NewService()
-	api := paymentV1API.NewAPI(service)
+func gracefulShutdown(log *logger.Logger, closer *closer.Closer) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	paymentV1.RegisterPaymentServiceServer(s, api)
-
-	// Enable GRPC reflection to simplify debugging
-	reflection.Register(s)
-
-	go func() {
-		log.Printf("🚀 gRPC server listening on %d\n", grpcPort)
-		if err := s.Serve(lis); err != nil {
-			log.Printf("failed to serve: %v\n", err)
-			return
-		}
-	}()
-
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	log.Println("🛑 Shutting down gRPC server...")
-	s.GracefulStop()
-	log.Println("✅ Server stopped")
+	if err := closer.CloseAll(ctx); err != nil {
+		log.Error(ctx, "❌ Error during shutdown", logger.Error(err))
+	}
 }
