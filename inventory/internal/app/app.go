@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/pinai4/spaceship-factory/inventory/internal/config"
+	"github.com/pinai4/spaceship-factory/inventory/internal/repository/seeds"
 	"github.com/pinai4/spaceship-factory/platform/pkg/closer"
 	"github.com/pinai4/spaceship-factory/platform/pkg/grpc/health"
 	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
@@ -44,6 +45,7 @@ func (a *App) Run(ctx context.Context) error {
 func (a *App) initDeps(ctx context.Context) error {
 	inits := []func(context.Context) error{
 		a.initDI,
+		a.initDBSeeds,
 		a.initListener,
 		a.initGRPCServer,
 	}
@@ -60,6 +62,15 @@ func (a *App) initDeps(ctx context.Context) error {
 
 func (a *App) initDI(_ context.Context) error {
 	a.diContainer = NewDiContainer(a.config, a.closer)
+	return nil
+}
+
+func (a *App) initDBSeeds(ctx context.Context) error {
+	seeder := seeds.New(a.diContainer.PartRepository(ctx))
+	if err := seeder.Seed(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 

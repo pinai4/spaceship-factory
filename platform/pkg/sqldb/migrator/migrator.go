@@ -11,7 +11,7 @@ type migrator struct {
 	migrationsDir string
 }
 
-func NewMigrator(db *sql.DB, migrationsDir string) *migrator {
+func New(db *sql.DB, migrationsDir string) *migrator {
 	return &migrator{
 		db:            db,
 		migrationsDir: migrationsDir,

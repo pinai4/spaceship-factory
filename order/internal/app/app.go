@@ -62,7 +62,7 @@ func (a *App) initDI(_ context.Context) error {
 }
 
 func (a *App) initDBMigrations(ctx context.Context) error {
-	migratorRunner := migrator.NewMigrator(a.diContainer.PostgresDB(ctx).DB, a.config.DBMigrations.Path())
+	migratorRunner := migrator.New(a.diContainer.PostgresDB(ctx).DB, a.config.DBMigrations.Path())
 	if err := migratorRunner.Up(); err != nil {
 		return err
 	}
