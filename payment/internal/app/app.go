@@ -18,12 +18,13 @@ import (
 )
 
 type App struct {
-	config      *config.Config
-	closer      *closer.Closer
-	logger      *logger.Logger
-	diContainer *diContainer
-	grpcServer  *grpc.Server
-	listener    net.Listener
+	config            *config.Config
+	closer            *closer.Closer
+	logger            *logger.Logger
+	diContainer       *diContainer
+	grpcServerOptions []grpc.ServerOption
+	grpcServer        *grpc.Server
+	listener          net.Listener
 }
 
 func New(ctx context.Context, config *config.Config, closer *closer.Closer, logger *logger.Logger) (*App, error) {
@@ -45,6 +46,7 @@ func (a *App) initDeps(ctx context.Context) error {
 	inits := []func(context.Context) error{
 		a.initDI,
 		a.initListener,
+		a.initGRPCServerOptions,
 		a.initGRPCServer,
 	}
 
@@ -82,8 +84,32 @@ func (a *App) initListener(_ context.Context) error {
 	return nil
 }
 
+func (a *App) initGRPCServerOptions(ctx context.Context) error {
+	printerInterceptor := func(
+		ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (interface{}, error) {
+		resp, err := handler(ctx, req)
+		if err == nil {
+			if r, ok := resp.(*paymentV1.PayOrderResponse); ok && r != nil {
+				a.logger.Info(ctx, "Payment was successful", logger.String("transaction_id", r.GetTransactionUuid()))
+			}
+		}
+
+		return resp, err
+	}
+
+	a.grpcServerOptions = append(a.grpcServerOptions, grpc.Creds(insecure.NewCredentials()), grpc.ChainUnaryInterceptor(
+		printerInterceptor,
+	))
+
+	return nil
+}
+
 func (a *App) initGRPCServer(ctx context.Context) error {
-	a.grpcServer = grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
+	a.grpcServer = grpc.NewServer(a.grpcServerOptions...)
 	a.closer.AddNamed("gRPC server", func(ctx context.Context) error {
 		a.grpcServer.GracefulStop()
 		return nil
