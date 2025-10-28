@@ -21,13 +21,13 @@ import (
 type App struct {
 	config      *config.Config
 	closer      *closer.Closer
-	logger      *logger.Logger
+	logger      logger.Logger
 	diContainer *diContainer
 	grpcServer  *grpc.Server
 	listener    net.Listener
 }
 
-func New(ctx context.Context, config *config.Config, closer *closer.Closer, logger *logger.Logger) (*App, error) {
+func New(ctx context.Context, config *config.Config, closer *closer.Closer, logger logger.Logger) (*App, error) {
 	a := &App{config: config, closer: closer, logger: logger}
 
 	err := a.initDeps(ctx)

@@ -21,7 +21,7 @@ func main() {
 		panic(fmt.Errorf("failed to load config: %w", err))
 	}
 
-	appLogger := logger.New(cfg.Logger.Level(), cfg.Logger.AsJSON())
+	appLogger := logger.NewZapLogger(cfg.Logger.Level(), cfg.Logger.AsJSON())
 	appCloser := closer.New(appLogger, syscall.SIGINT, syscall.SIGTERM)
 	appCtx, appCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer appCancel()
@@ -40,7 +40,7 @@ func main() {
 	}
 }
 
-func gracefulShutdown(log *logger.Logger, closer *closer.Closer) {
+func gracefulShutdown(log logger.Logger, closer *closer.Closer) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
