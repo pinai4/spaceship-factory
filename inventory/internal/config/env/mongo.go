@@ -7,8 +7,8 @@ import (
 )
 
 type mongoEnvConfig struct {
-	Host     string `env:"MONGO_EXTERNAL_HOST,required"`
-	Port     string `env:"MONGO_EXTERNAL_PORT,required"`
+	Host     string `env:"MONGO_HOST,required"`
+	Port     string `env:"MONGO_PORT,required"`
 	Database string `env:"MONGO_DATABASE,required"`
 	User     string `env:"MONGO_INITDB_ROOT_USERNAME,required"`
 	Password string `env:"MONGO_INITDB_ROOT_PASSWORD,required"`

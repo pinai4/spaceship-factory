@@ -66,6 +66,10 @@ func (a *App) initDI(_ context.Context) error {
 }
 
 func (a *App) initDBSeeds(ctx context.Context) error {
+	if !a.config.AppEnvironment.IsDev() {
+		return nil
+	}
+
 	seeder := seeds.New(a.diContainer.PartRepository(ctx))
 	if err := seeder.Seed(ctx); err != nil {
 		return err

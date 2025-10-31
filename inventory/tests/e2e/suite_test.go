@@ -22,21 +22,20 @@ const (
 	projectName = "inventory-e2e"
 
 	// App environment variable keys
-	envMongoImageNameKey    = "MONGO_IMAGE_NAME"
-	envMongoExternalHostKey = "MONGO_EXTERNAL_HOST"
-	envMongoExternalPortKey = "MONGO_EXTERNAL_PORT"
-	envMongoDatabaseKey     = "MONGO_DATABASE"
-	envMongoUsernameKey     = "MONGO_INITDB_ROOT_USERNAME"
-	envMongoPasswordKey     = "MONGO_INITDB_ROOT_PASSWORD" //nolint:gosec
-	envMongoAuthDBKey       = "MONGO_AUTH_DB"
+	envAppEnvKey         = "APP_ENV"
+	envMongoImageNameKey = "MONGO_IMAGE_NAME"
+	envMongoHostKey      = "MONGO_HOST"
+	envMongoPortKey      = "MONGO_PORT"
+	envMongoDatabaseKey  = "MONGO_DATABASE"
+	envMongoUsernameKey  = "MONGO_INITDB_ROOT_USERNAME"
+	envMongoPasswordKey  = "MONGO_INITDB_ROOT_PASSWORD" //nolint:gosec
+	envMongoAuthDBKey    = "MONGO_AUTH_DB"
+
+	appEnvTest = "test"
 
 	appDockerfile = "deploy/docker/inventory/Dockerfile"
 
 	mongoPartsCollectionName = "parts"
-
-	// App environment variable keys
-	envGRPCHostKey = "GRPC_HOST"
-	envGRPCPortKey = "GRPC_PORT"
 )
 
 type E2ESuite struct {

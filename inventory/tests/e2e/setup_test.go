@@ -74,9 +74,10 @@ func (s *E2ESuite) initEnvironment() {
 	projectRoot := path.GetProjectRoot()
 
 	appEnv := map[string]string{
+		envAppEnvKey: appEnvTest,
 		// Override MongoDB host for connecting to the container from testcontainers
-		envMongoExternalHostKey: generatedMongo.Config().ContainerName,
-		envMongoExternalPortKey: generatedMongo.Config().Port,
+		envMongoHostKey: generatedMongo.Config().ContainerName,
+		envMongoPortKey: generatedMongo.Config().Port,
 	}
 
 	appContainer, err := app.NewContainer(s.suiteCtx,

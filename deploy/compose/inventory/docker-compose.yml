@@ -7,7 +7,7 @@ services:
     volumes:
       - mongo_inventory_data:/data/db
     ports:
-      - "${MONGO_EXTERNAL_PORT}:27017"
+      - "${MONGO_PORT}:27017"
     healthcheck:
       # MongoDB readiness check: run the ping command via mongosh using login and password
       # --quiet disables extra output so that the result is only "1" on success

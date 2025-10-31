@@ -7,8 +7,8 @@ import (
 )
 
 type postgresEnvConfig struct {
-	Host     string `env:"POSTGRES_EXTERNAL_HOST,required"`
-	Port     string `env:"POSTGRES_EXTERNAL_PORT,required"`
+	Host     string `env:"POSTGRES_HOST,required"`
+	Port     string `env:"POSTGRES_PORT,required"`
 	User     string `env:"POSTGRES_USER,required"`
 	Password string `env:"POSTGRES_PASSWORD,required"`
 	Database string `env:"POSTGRES_DB,required"`

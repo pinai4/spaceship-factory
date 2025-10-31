@@ -13,3 +13,9 @@ type MongoConfig interface {
 	URI() string
 	DatabaseName() string
 }
+
+type AppEnvironmentConfig interface {
+	IsDev() bool
+	IsTest() bool
+	IsProd() bool
+}
