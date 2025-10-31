@@ -1,0 +1,35 @@
+# .dockerignore is needed to prevent unnecessary files from being included in the container
+# during the Docker image build process: caches, temporary editor files, build directories, and so on.
+# This reduces the image size and speeds up the build process thanks to layer caching.
+
+# Ignore build directories and files
+/bin
+/build
+/server
+
+# Ignore cache and modules if they exist locally
+/pkg
+/vendor
+
+# Ignore temporary editor files
+*.swp
+*.swo
+*.tmp
+
+# Ignore hidden system files
+.DS_Store
+Thumbs.db
+
+# Ignore VCS (Git)
+.git
+.gitignore
+
+# Ignore IDE files
+.idea
+.vscode
+
+# Ignore log files
+*.log
+node_modules
+coverage
+.env
