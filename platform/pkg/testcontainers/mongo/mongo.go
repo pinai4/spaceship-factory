@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
 	"github.com/testcontainers/testcontainers-go"
 	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
 )
 
 const (

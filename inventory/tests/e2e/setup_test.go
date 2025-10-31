@@ -1,3 +1,5 @@
+//go:build integration
+
 package e2e
 
 import (
@@ -6,14 +8,15 @@ import (
 	"path/filepath"
 
 	"github.com/joho/godotenv"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
 	"github.com/pinai4/spaceship-factory/platform/pkg/testcontainers/app"
 	"github.com/pinai4/spaceship-factory/platform/pkg/testcontainers/mongo"
 	"github.com/pinai4/spaceship-factory/platform/pkg/testcontainers/network"
 	"github.com/pinai4/spaceship-factory/platform/pkg/testcontainers/path"
 	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func (s *E2ESuite) SetupSuite() {

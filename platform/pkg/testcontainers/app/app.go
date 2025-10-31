@@ -9,9 +9,10 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
-	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
 )
 
 const (

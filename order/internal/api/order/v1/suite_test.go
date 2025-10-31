@@ -1,3 +1,5 @@
+//go:build unit || !integration
+
 package v1_test
 
 import (
@@ -36,7 +38,7 @@ func (s *APISuite) SetupTest() {
 func (s *APISuite) TearDownTest() {
 }
 
-func TestAPIIntegration(t *testing.T) {
+func TestAPI(t *testing.T) {
 	suite.Run(t, new(APISuite))
 }
 

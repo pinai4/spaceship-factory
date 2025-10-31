@@ -1,3 +1,5 @@
+//go:build integration
+
 package e2e
 
 import (
@@ -5,10 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
-	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
+
+	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
+	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
 )
 
 const (

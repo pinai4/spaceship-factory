@@ -1,3 +1,5 @@
+//go:build unit || !integration
+
 package v1_test
 
 import (

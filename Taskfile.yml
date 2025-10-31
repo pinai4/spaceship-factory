@@ -365,6 +365,32 @@ tasks:
         done
         exit $ERR
 
+  test-integration:
+    desc: "Runs integration tests for the specified modules"
+    summary: |
+      Runs integration tests for the modules specified through the MODULES variable.
+      Uses the "integration" tag to identify integration tests.
+    cmds:
+      - |
+        ERR=0
+        echo "🚀 Running integration tests (with tag integration) for modules: {{.MODULES}}"
+        for mod in {{.MODULES}}; do
+          if [ -d "$mod" ]; then
+            echo "🧪 Checking module $mod for integration tests"
+        
+            # Check for files containing the integration tag
+            HAS_TESTS=$(grep -r "//go:build integration" $mod --include="*.go" | wc -l)
+        
+            if [ "$HAS_TESTS" -eq 0 ]; then
+              echo "⚠️ Module $mod does not contain integration tests (with tag integration), skipping"
+            else
+              echo "▶️ Running integration tests for $mod"
+              go test -v -tags=integration ./$mod/... || ERR=1
+            fi
+          fi
+        done
+        exit $ERR
+
   up-core:
     desc: Start core containers
     dir: deploy/compose/core

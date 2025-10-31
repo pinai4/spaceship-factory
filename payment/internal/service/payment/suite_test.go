@@ -1,3 +1,5 @@
+//go:build unit || !integration
+
 package payment_test
 
 import (
@@ -27,6 +29,6 @@ func (s *ServiceSuite) SetupTest() {
 func (s *ServiceSuite) TearDownTest() {
 }
 
-func TestServiceIntegration(t *testing.T) {
+func TestService(t *testing.T) {
 	suite.Run(t, new(ServiceSuite))
 }

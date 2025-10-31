@@ -1,3 +1,5 @@
+//go:build unit || !integration
+
 package payment_test
 
 func (s *ServiceSuite) TestPayOrderSuccess() {

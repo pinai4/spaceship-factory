@@ -1,3 +1,5 @@
+//go:build integration
+
 package e2e
 
 import (
@@ -5,13 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/pinai4/spaceship-factory/platform/pkg/testcontainers/app"
 	"github.com/pinai4/spaceship-factory/platform/pkg/testcontainers/mongo"
 	"github.com/pinai4/spaceship-factory/platform/pkg/testcontainers/network"
 	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // TestEnvironment — structure for storing test environment resources

@@ -1,3 +1,5 @@
+//go:build unit || !integration
+
 package memory_test
 
 import (
@@ -30,7 +32,7 @@ func (s *RepositorySuite) SetupTest() {
 func (s *RepositorySuite) TearDownTest() {
 }
 
-func TestRepositoryIntegration(t *testing.T) {
+func TestRepository(t *testing.T) {
 	suite.Run(t, new(RepositorySuite))
 }
 
