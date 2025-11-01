@@ -22,12 +22,15 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       COVERAGE_DIR: coverage
       COVERAGE_FILE: total.out
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4.2.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🧰 Set up Go
         uses: actions/setup-go@v5.4.0
@@ -37,6 +40,8 @@ jobs:
 
       - name: 📌 Install Task
         uses: arduino/setup-task@v2.0.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🧪 Run tests with coverage
         env:
