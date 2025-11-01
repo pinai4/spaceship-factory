@@ -12,7 +12,7 @@ RUN apk add --no-cache git
 WORKDIR /app
 
 # Copy go.work and its checksum — this allows Go to properly link the modules
-COPY go.work go.work.sum ./
+COPY go.work ./
 
 # Copy go.mod and go.sum of all dependent modules — needed for caching go mod download
 COPY platform/go.mod platform/go.sum ./platform/
