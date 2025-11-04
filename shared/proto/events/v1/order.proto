@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package events.v1;
+
+option go_package = "github.com/pinai4/spaceship-factory/shared/pkg/proto/events/v1;events_v1";
+
+// Order has been paid
+message OrderPaid {
+  string event_uuid = 1;
+  string order_uuid = 2;
+  string user_uuid = 3;
+  string payment_method = 4;
+  string transaction_uuid = 5;
+}

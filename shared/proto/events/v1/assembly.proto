@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package events.v1;
+
+option go_package = "github.com/pinai4/spaceship-factory/shared/pkg/proto/events/v1;events_v1";
+
+// Ship has been assembled
+message ShipAssembled {
+  string event_uuid = 1;
+  string order_uuid = 2;
+  string user_uuid = 3;
+  int64 build_time_sec = 4;
+}
