@@ -1,10 +1,113 @@
 services:
-  placeholder:
-    image: alpine
-    container_name: core-placeholder
-    tty: true
+  kafka:
+    image: confluentinc/cp-kafka:7.9.0 # Kafka image from Confluent, version 7.9.0 (modern, with KRaft support)
+    container_name: kafka
+    env_file:
+      - .env
+    environment:
+      # === Main KRaft parameters (Kafka without Zookeeper) ===
+      KAFKA_KRAFT_MODE: "true" # Enable KRaft mode (Kafka Raft Metadata Mode), without ZooKeeper.
+
+      KAFKA_PROCESS_ROLES: controller,broker # Role of the current process: both controller (manages metadata) and broker (handles messages).
+
+      KAFKA_NODE_ID: 1 # Unique node ID in the Kafka cluster. Must be unique for each node in the cluster.
+
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:${KAFKA_CONTROLLER_PORT}"
+      # Specifies the list of controller quorum members for Raft —
+      # in the format "ID@address:port". We have one node: ID=1, address kafka, port ${KAFKA_CONTROLLER_PORT}.
+      # This is required for Kafka Metadata distributed consensus.
+
+      # === Listeners (network bindings) ===
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:${KAFKA_INTERNAL_PORT},PLAINTEXT_EXTERNAL://0.0.0.0:${KAFKA_EXTERNAL_PORT},CONTROLLER://kafka:${KAFKA_CONTROLLER_PORT}
+      # Configure which interfaces and ports Kafka listens on.
+      # - PLAINTEXT://0.0.0.0:${KAFKA_INTERNAL_PORT} — internal listener for Docker network.
+      # - PLAINTEXT_EXTERNAL://0.0.0.0:${KAFKA_EXTERNAL_PORT} — external listener for local machine access.
+      # - CONTROLLER://kafka:${KAFKA_CONTROLLER_PORT} — internal listener for controller-broker communication within Kafka.
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      # Defines which security protocols are used for each listener.
+      # In this case, all listeners use unencrypted PLAINTEXT (for local development).
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Specifies which listener is used for inter-broker communication (we have one broker, but it must be set).
+      # PLAINTEXT — internal listener on ${KAFKA_INTERNAL_PORT}.
+
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # Specifies which listener Kafka will use for controller communication (Raft service traffic).
+
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_INTERNAL_PORT},PLAINTEXT_EXTERNAL://localhost:${KAFKA_EXTERNAL_PORT},CONTROLLER://kafka:${KAFKA_CONTROLLER_PORT}
+      # Important! Kafka informs clients which addresses it can be reached at.
+      # - Inside the Docker network: kafka:${KAFKA_INTERNAL_PORT}.
+      # - For host connections: localhost:${KAFKA_EXTERNAL_PORT}.
+      # - For controller communication: kafka:${KAFKA_CONTROLLER_PORT}.
+
+      # === Cluster behavior ===
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # Allows Kafka to automatically create topics upon first use.
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # Number of replicas for the internal offsets topic (we have one broker, so 1).
+
+      KAFKA_LOG_RETENTION_HOURS: 168
+      # Keep topic messages for 168 hours (7 days).
+
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # Set initial consumer group rebalance delay to 0 ms (faster startup).
+
+      CLUSTER_ID: "Lk3OsYBSD34fcwNTJENDM2Qk"
+      # Unique Kafka cluster identifier.
+
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    ports:
+      - "${KAFKA_EXTERNAL_PORT}:${KAFKA_EXTERNAL_PORT}"
+    healthcheck:
+      # Check if port ${KAFKA_INTERNAL_PORT} is available inside the container.
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "echo > /dev/tcp/localhost/${KAFKA_INTERNAL_PORT}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
     networks:
       - microservices-net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2 # Kafka UI web interface for managing broker and topics.
+    container_name: kafka-ui
+    env_file:
+      - .env
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "local-cluster"
+      # Cluster name displayed in the UI.
+
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:${KAFKA_INTERNAL_PORT}"
+      # Kafka broker address within the container network for UI connection.
+
+    ports:
+      - "${KAFKA_UI_PORT}:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      # Check UI health via HTTP endpoint /actuator/health.
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+volumes:
+  kafka_data:
 
 networks:
   microservices-net:
