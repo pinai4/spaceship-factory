@@ -27,6 +27,13 @@ func (s *ServiceSuite) TestProcessPaymentSuccess() {
 	s.orderRepository.On("Get", s.ctx, orderUUID).Return(order, nil).Once()
 	s.paymentClient.On("PayOrder", s.ctx, orderUUID.String(), userUUID.String(), string(paymentMethod)).Return(tranUUID.String(), nil).Once()
 	s.orderRepository.On("Update", s.ctx, orderUUID, updatedOrder).Return(nil).Once()
+	s.orderProducer.On("ProduceOrderPaid", s.ctx, mock.MatchedBy(func(e model.OrderPaidEvent) bool {
+		return e.OrderUUID == orderUUID.String() &&
+			e.UserUUID == userUUID.String() &&
+			e.PaymentMethod == string(paymentMethod) &&
+			e.TransactionUUID == tranUUID.String()
+		// EventUUID is intentionally ignored
+	})).Return(nil).Once()
 
 	res, err := s.service.ProcessPayment(s.ctx, orderUUID, paymentMethod)
 	s.Require().NoError(err)
@@ -90,5 +97,37 @@ func (s *ServiceSuite) TestProcessPaymentRepoUpdateError() {
 	res, err := s.service.ProcessPayment(s.ctx, orderUUID, paymentMethod)
 	s.Require().Error(err)
 	s.Require().ErrorIs(err, repoErr)
+	s.Require().Empty(res)
+}
+
+func (s *ServiceSuite) TestProcessPaymentProducerError() {
+	producerErr := errors.New("test producer error")
+
+	order := buildTestOrder()
+	orderUUID := order.UUID
+	userUUID := order.UserUUID
+
+	paymentMethod := model.OrderPaymentMethodInvestorMoney
+	tranUUID := uuid.New()
+
+	updatedOrder := order
+	updatedOrder.TransactionUUID = &tranUUID
+	updatedOrder.PaymentMethod = &paymentMethod
+	updatedOrder.Status = model.OrderStatusPaid
+
+	s.orderRepository.On("Get", s.ctx, orderUUID).Return(order, nil).Once()
+	s.paymentClient.On("PayOrder", s.ctx, orderUUID.String(), userUUID.String(), string(paymentMethod)).Return(tranUUID.String(), nil).Once()
+	s.orderRepository.On("Update", s.ctx, orderUUID, updatedOrder).Return(nil).Once()
+	s.orderProducer.On("ProduceOrderPaid", s.ctx, mock.MatchedBy(func(e model.OrderPaidEvent) bool {
+		return e.OrderUUID == orderUUID.String() &&
+			e.UserUUID == userUUID.String() &&
+			e.PaymentMethod == string(paymentMethod) &&
+			e.TransactionUUID == tranUUID.String()
+		// EventUUID is intentionally ignored
+	})).Return(producerErr).Once()
+
+	res, err := s.service.ProcessPayment(s.ctx, orderUUID, paymentMethod)
+	s.Require().Error(err)
+	s.Require().ErrorIs(err, producerErr)
 	s.Require().Empty(res)
 }

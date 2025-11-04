@@ -13,6 +13,7 @@ import (
 	"github.com/pinai4/spaceship-factory/order/internal/model"
 	repoMocks "github.com/pinai4/spaceship-factory/order/internal/repository/mocks"
 	"github.com/pinai4/spaceship-factory/order/internal/service"
+	serviceMocks "github.com/pinai4/spaceship-factory/order/internal/service/mocks"
 	"github.com/pinai4/spaceship-factory/order/internal/service/order"
 )
 
@@ -24,6 +25,7 @@ type ServiceSuite struct {
 	orderRepository *repoMocks.OrderRepository
 	paymentClient   *clientMocks.PaymentClient
 	inventoryClient *clientMocks.InventoryClient
+	orderProducer   *serviceMocks.OrderProducer
 
 	service service.OrderService
 }
@@ -34,11 +36,13 @@ func (s *ServiceSuite) SetupTest() {
 	s.orderRepository = repoMocks.NewOrderRepository(s.T())
 	s.paymentClient = clientMocks.NewPaymentClient(s.T())
 	s.inventoryClient = clientMocks.NewInventoryClient(s.T())
+	s.orderProducer = serviceMocks.NewOrderProducer(s.T())
 
 	s.service = order.NewService(
 		s.orderRepository,
 		s.paymentClient,
 		s.inventoryClient,
+		s.orderProducer,
 	)
 }
 

@@ -12,16 +12,19 @@ type service struct {
 	orderRepository repository.OrderRepository
 	paymentClient   client.PaymentClient
 	inventoryClient client.InventoryClient
+	orderProducer   def.OrderProducer
 }
 
 func NewService(
 	orderRepository repository.OrderRepository,
 	paymentClient client.PaymentClient,
 	inventoryClient client.InventoryClient,
+	orderProducer def.OrderProducer,
 ) *service {
 	return &service{
 		orderRepository: orderRepository,
 		paymentClient:   paymentClient,
 		inventoryClient: inventoryClient,
+		orderProducer:   orderProducer,
 	}
 }

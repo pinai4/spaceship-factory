@@ -9,12 +9,14 @@ import (
 )
 
 type Config struct {
-	Logger              LoggerConfig
-	HTTPServer          HTTPServerConfig
-	Postgres            PostgresConfig
-	DBMigrations        DBMigrationsConfig
-	InventoryGRPCClient InventoryGRPCClientConfig
-	PaymentGRPCClient   PaymentGRPCClientConfig
+	Logger                 LoggerConfig
+	HTTPServer             HTTPServerConfig
+	Postgres               PostgresConfig
+	DBMigrations           DBMigrationsConfig
+	InventoryGRPCClient    InventoryGRPCClientConfig
+	PaymentGRPCClient      PaymentGRPCClientConfig
+	Kafka                  KafkaConfig
+	OrderPaidEventProducer OrderPaidEventProducerConfig
 }
 
 func Load(path ...string) (*Config, error) {
@@ -53,12 +55,24 @@ func Load(path ...string) (*Config, error) {
 		return nil, err
 	}
 
+	kafkaCfg, err := env.NewKafkaConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	orderPaidEventProducerCfg, err := env.NewOrderPaidEventProducerConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
-		Logger:              loggerCfg,
-		HTTPServer:          httpServerCfg,
-		Postgres:            postgresCfg,
-		DBMigrations:        dbMigrationsCfg,
-		InventoryGRPCClient: inventoryGRPCClientCfg,
-		PaymentGRPCClient:   paymentGRPCClientCfg,
+		Logger:                 loggerCfg,
+		HTTPServer:             httpServerCfg,
+		Postgres:               postgresCfg,
+		DBMigrations:           dbMigrationsCfg,
+		InventoryGRPCClient:    inventoryGRPCClientCfg,
+		PaymentGRPCClient:      paymentGRPCClientCfg,
+		Kafka:                  kafkaCfg,
+		OrderPaidEventProducer: orderPaidEventProducerCfg,
 	}, nil
 }
