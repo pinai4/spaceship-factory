@@ -1,0 +1,41 @@
+package orderpaid
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"google.golang.org/protobuf/proto"
+
+	"github.com/pinai4/spaceship-factory/assembly/internal/model"
+	kafkaConsumer "github.com/pinai4/spaceship-factory/platform/pkg/kafka/consumer"
+	eventsV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/events/v1"
+)
+
+func (s *consumer) handler(ctx context.Context, msg kafkaConsumer.Message) error {
+	event, err := s.decode(msg.Value)
+	if err != nil {
+		return fmt.Errorf("failed to decode 'order.paid' topic message: %w", err)
+	}
+
+	if err := s.assemblyService.AssembleShip(ctx, event.OrderUUID, event.UserUUID, 10*time.Second); err != nil {
+		return fmt.Errorf("failed to assemble ship: %w", err)
+	}
+
+	return nil
+}
+
+func (s *consumer) decode(data []byte) (model.OrderPaidEvent, error) {
+	var pb eventsV1.OrderPaid
+	if err := proto.Unmarshal(data, &pb); err != nil {
+		return model.OrderPaidEvent{}, fmt.Errorf("failed to unmarshal protobuf: %w", err)
+	}
+
+	return model.OrderPaidEvent{
+		EventUUID:       pb.GetEventUuid(),
+		OrderUUID:       pb.GetOrderUuid(),
+		UserUUID:        pb.GetUserUuid(),
+		PaymentMethod:   pb.GetPaymentMethod(),
+		TransactionUUID: pb.GetTransactionUuid(),
+	}, nil
+}

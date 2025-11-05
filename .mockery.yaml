@@ -31,3 +31,7 @@ packages:
   github.com/pinai4/spaceship-factory/order/internal/client:
     config:
       include-regex: ".*Client"
+
+  github.com/pinai4/spaceship-factory/assembly/internal/service:
+    config:
+      include-regex: ".*(Service|Producer)$"
