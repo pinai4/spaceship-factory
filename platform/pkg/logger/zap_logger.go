@@ -120,6 +120,10 @@ func convertFields(fields []Field) []zap.Field {
 			zf = append(zf, zap.String(f.Key, v))
 		case int:
 			zf = append(zf, zap.Int(f.Key, v))
+		case int32:
+			zf = append(zf, zap.Int32(f.Key, v))
+		case int64:
+			zf = append(zf, zap.Int64(f.Key, v))
 		case error:
 			zf = append(zf, zap.Error(v))
 		default:
