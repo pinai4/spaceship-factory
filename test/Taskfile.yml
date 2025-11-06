@@ -160,6 +160,26 @@ tasks:
         fi
         echo "✅ Order status after payment: $ORDER_STATUS"
 
+        # If the status is PAID, wait for assembly
+        if [[ "$ORDER_STATUS" == *"PAID"* ]]; then
+          echo "Waiting for the order to be assembled (11 seconds)..."
+          sleep 11
+        
+          ORDER_INFO_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/v1/orders/$ORDER_UUID")
+          ORDER_STATUS=$(echo $ORDER_INFO_RESPONSE | grep -o '"status":"[^"]*' | cut -d'"' -f4)
+          if [ -z "$ORDER_STATUS" ]; then
+            ORDER_STATUS=$(echo $ORDER_INFO_RESPONSE | grep -o '"status": "[^"]*' | cut -d'"' -f4)
+          fi
+        
+          # Check that the status changed to ASSEMBLED
+          if [[ "$ORDER_STATUS" != *"ASSEMBLED"* ]]; then
+            echo "❌ The order status did not change to ASSEMBLED after waiting. Current status: $ORDER_STATUS"
+            exit 1
+          fi
+        
+          echo "✅ Order status after waiting for assembly: $ORDER_STATUS (expected ASSEMBLED)"
+        fi
+
         echo
         echo "📝 Test 8: Creating a second order to cancel (REST API)"
         ORDER2_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/v1/orders" \

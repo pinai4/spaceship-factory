@@ -3,15 +3,21 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/pinai4/spaceship-factory/order/internal/config"
+	"github.com/pinai4/spaceship-factory/order/internal/consumer"
+	"github.com/pinai4/spaceship-factory/order/internal/consumer/shipassembled"
 	"github.com/pinai4/spaceship-factory/platform/pkg/closer"
+	platformConsumer "github.com/pinai4/spaceship-factory/platform/pkg/kafka/consumer"
 	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
+	platformMiddleware "github.com/pinai4/spaceship-factory/platform/pkg/middleware/kafka"
 	"github.com/pinai4/spaceship-factory/platform/pkg/sqldb/migrator"
 	orderV1 "github.com/pinai4/spaceship-factory/shared/pkg/openapi/order/v1"
 )
@@ -21,7 +27,11 @@ type App struct {
 	closer      *closer.Closer
 	logger      logger.Logger
 	diContainer *diContainer
-	httpServer  *http.Server
+
+	httpServer *http.Server
+
+	saramaConsumerGroup sarama.ConsumerGroup
+	consumer            consumer.Consumer
 }
 
 func New(ctx context.Context, config *config.Config, closer *closer.Closer, logger logger.Logger) (*App, error) {
@@ -36,7 +46,41 @@ func New(ctx context.Context, config *config.Config, closer *closer.Closer, logg
 }
 
 func (a *App) Run(ctx context.Context) error {
-	return a.runHTTPServer(ctx)
+	// Channel for receiving errors from components
+	errCh := make(chan error, 2)
+
+	// Context to stop all goroutines
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Consumer
+	go func() {
+		if err := a.runConsumer(ctx); err != nil {
+			errCh <- fmt.Errorf("consumer crashed: %w", err)
+		}
+	}()
+
+	// HTTP server
+	go func() {
+		if err := a.runHTTPServer(ctx); err != nil {
+			errCh <- fmt.Errorf("http server crashed: %w", err)
+		}
+	}()
+
+	// Wait either for an error or for context completion (e.g., SIGINT/SIGTERM)
+	select {
+	case <-ctx.Done():
+		a.logger.Info(ctx, "Shutdown signal received")
+	case err := <-errCh:
+		a.logger.Error(ctx, "Component crashed, shutting down", logger.Error(err))
+		// Trigger cancel to stop the other component
+		cancel()
+		// Wait for all tasks to finish (if graceful shutdown is implemented internally)
+		<-ctx.Done()
+		return err
+	}
+
+	return nil
 }
 
 func (a *App) initDeps(ctx context.Context) error {
@@ -44,6 +88,8 @@ func (a *App) initDeps(ctx context.Context) error {
 		a.initDI,
 		a.initDBMigrations,
 		a.initHTTPServer,
+		a.initSarmaConsumerGroup,
+		a.initConsumer,
 	}
 
 	for _, f := range inits {
@@ -109,6 +155,48 @@ func (a *App) runHTTPServer(ctx context.Context) error {
 	a.logger.Info(ctx, "🚀 HTTP-server listening", logger.String("address", a.config.HTTPServer.Address()))
 
 	if err := a.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) initSarmaConsumerGroup(_ context.Context) error {
+	var err error
+	a.saramaConsumerGroup, err = sarama.NewConsumerGroup(
+		a.config.Kafka.Brokers(),
+		a.config.ShipAssembledEventConsumer.GroupID(),
+		a.config.ShipAssembledEventConsumer.Config(),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create consumer group: %w", err)
+	}
+	a.closer.AddNamed("Sarama (kafka) consumer group", func(ctx context.Context) error {
+		return a.saramaConsumerGroup.Close()
+	})
+
+	return nil
+}
+
+func (a *App) initConsumer(ctx context.Context) error {
+	pfmConsumer := platformConsumer.NewConsumer(
+		a.saramaConsumerGroup,
+		[]string{
+			a.config.ShipAssembledEventConsumer.Topic(),
+		},
+		a.logger,
+		platformMiddleware.Logging(a.logger),
+	)
+
+	a.consumer = shipassembled.New(pfmConsumer, a.diContainer.OrderService(ctx))
+
+	return nil
+}
+
+func (a *App) runConsumer(ctx context.Context) error {
+	a.logger.Info(ctx, "🚀 Consumer running", logger.String("topic", a.config.ShipAssembledEventConsumer.Topic()))
+
+	if err := a.consumer.Run(ctx); err != nil {
 		return err
 	}
 

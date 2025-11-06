@@ -36,10 +36,10 @@ func (p *producer) ProduceOrderPaid(ctx context.Context, event model.OrderPaidEv
 
 	msg := &eventsV1.OrderPaid{
 		EventUuid:       event.EventUUID,
-		OrderUuid:       event.OrderUUID,
-		UserUuid:        event.UserUUID,
+		OrderUuid:       event.OrderUUID.String(),
+		UserUuid:        event.UserUUID.String(),
 		PaymentMethod:   event.PaymentMethod,
-		TransactionUuid: event.TransactionUUID,
+		TransactionUuid: event.TransactionUUID.String(),
 	}
 
 	payload, err := proto.Marshal(msg)

@@ -40,3 +40,9 @@ type OrderPaidEventProducerConfig interface {
 	Topic() string
 	Config() *sarama.Config
 }
+
+type ShipAssembledEventConsumerConfig interface {
+	Topic() string
+	GroupID() string
+	Config() *sarama.Config
+}

@@ -45,6 +45,6 @@ properties:
     example: "CARD"
   status:
     type: string
-    enum: [ "PENDING_PAYMENT", "PAID", "CANCELLED" ]
+    enum: [ "PENDING_PAYMENT", "PAID", "CANCELLED", "ASSEMBLED" ]
     description: Status
     example: "PAID"

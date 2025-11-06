@@ -13,4 +13,5 @@ type OrderService interface {
 	Get(ctx context.Context, orderUUID uuid.UUID) (model.Order, error)
 	ProcessPayment(ctx context.Context, orderUUID uuid.UUID, paymentMethod model.OrderPaymentMethod) (uuid.UUID, error)
 	Cancel(ctx context.Context, orderUUID uuid.UUID) error
+	Assemble(ctx context.Context, orderUUID uuid.UUID) error
 }

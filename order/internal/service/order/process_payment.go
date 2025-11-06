@@ -35,10 +35,10 @@ func (s *service) ProcessPayment(ctx context.Context, orderUUID uuid.UUID, payme
 
 	event := model.OrderPaidEvent{
 		EventUUID:       uuid.NewString(),
-		OrderUUID:       orderUUID.String(),
-		UserUUID:        order.UserUUID.String(),
+		OrderUUID:       orderUUID,
+		UserUUID:        order.UserUUID,
 		PaymentMethod:   string(paymentMethod),
-		TransactionUUID: tranUUID.String(),
+		TransactionUUID: tranUUID,
 	}
 	if err := s.orderProducer.ProduceOrderPaid(ctx, event); err != nil {
 		return uuid.UUID{}, fmt.Errorf("OrderService.ProcessPayment produce OrderPaidEvent error: %w", err)

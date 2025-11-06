@@ -28,10 +28,10 @@ func (s *ServiceSuite) TestProcessPaymentSuccess() {
 	s.paymentClient.On("PayOrder", s.ctx, orderUUID.String(), userUUID.String(), string(paymentMethod)).Return(tranUUID.String(), nil).Once()
 	s.orderRepository.On("Update", s.ctx, orderUUID, updatedOrder).Return(nil).Once()
 	s.orderProducer.On("ProduceOrderPaid", s.ctx, mock.MatchedBy(func(e model.OrderPaidEvent) bool {
-		return e.OrderUUID == orderUUID.String() &&
-			e.UserUUID == userUUID.String() &&
+		return e.OrderUUID == orderUUID &&
+			e.UserUUID == userUUID &&
 			e.PaymentMethod == string(paymentMethod) &&
-			e.TransactionUUID == tranUUID.String()
+			e.TransactionUUID == tranUUID
 		// EventUUID is intentionally ignored
 	})).Return(nil).Once()
 
@@ -119,10 +119,10 @@ func (s *ServiceSuite) TestProcessPaymentProducerError() {
 	s.paymentClient.On("PayOrder", s.ctx, orderUUID.String(), userUUID.String(), string(paymentMethod)).Return(tranUUID.String(), nil).Once()
 	s.orderRepository.On("Update", s.ctx, orderUUID, updatedOrder).Return(nil).Once()
 	s.orderProducer.On("ProduceOrderPaid", s.ctx, mock.MatchedBy(func(e model.OrderPaidEvent) bool {
-		return e.OrderUUID == orderUUID.String() &&
-			e.UserUUID == userUUID.String() &&
+		return e.OrderUUID == orderUUID &&
+			e.UserUUID == userUUID &&
 			e.PaymentMethod == string(paymentMethod) &&
-			e.TransactionUUID == tranUUID.String()
+			e.TransactionUUID == tranUUID
 		// EventUUID is intentionally ignored
 	})).Return(producerErr).Once()
 

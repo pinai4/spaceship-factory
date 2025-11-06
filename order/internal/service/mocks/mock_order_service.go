@@ -24,6 +24,53 @@ func (_m *OrderService) EXPECT() *OrderService_Expecter {
 	return &OrderService_Expecter{mock: &_m.Mock}
 }
 
+// Assemble provides a mock function with given fields: ctx, orderUUID
+func (_m *OrderService) Assemble(ctx context.Context, orderUUID uuid.UUID) error {
+	ret := _m.Called(ctx, orderUUID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Assemble")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = rf(ctx, orderUUID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// OrderService_Assemble_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Assemble'
+type OrderService_Assemble_Call struct {
+	*mock.Call
+}
+
+// Assemble is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orderUUID uuid.UUID
+func (_e *OrderService_Expecter) Assemble(ctx interface{}, orderUUID interface{}) *OrderService_Assemble_Call {
+	return &OrderService_Assemble_Call{Call: _e.mock.On("Assemble", ctx, orderUUID)}
+}
+
+func (_c *OrderService_Assemble_Call) Run(run func(ctx context.Context, orderUUID uuid.UUID)) *OrderService_Assemble_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *OrderService_Assemble_Call) Return(_a0 error) *OrderService_Assemble_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *OrderService_Assemble_Call) RunAndReturn(run func(context.Context, uuid.UUID) error) *OrderService_Assemble_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Cancel provides a mock function with given fields: ctx, orderUUID
 func (_m *OrderService) Cancel(ctx context.Context, orderUUID uuid.UUID) error {
 	ret := _m.Called(ctx, orderUUID)
