@@ -54,6 +54,9 @@ linters: # List of enabled and disabled linters
           - dupl          # Skip duplicate detection in tests
           - gosec         # Skip vulnerability scanning in tests
           - containedctx  # Skip checking `context.Context` field types in structs in tests
+      - path: internal/config/env/.*_event_consumer\.go # Configs look similar but represent different consumers
+        linters:
+          - dupl
 
   settings: # Individual settings for specific linters
 
