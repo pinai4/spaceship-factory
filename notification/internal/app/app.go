@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/IBM/sarama"
+	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 
 	"github.com/pinai4/spaceship-factory/notification/internal/config"
 	"github.com/pinai4/spaceship-factory/notification/internal/consumer"
@@ -48,6 +50,11 @@ func (a *App) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	// telegramBot
+	go func() {
+		a.runTelegramBot(ctx)
+	}()
+
 	// orderPaidConsumer
 	go func() {
 		if err := a.runOrderPaidConsumer(ctx); err != nil {
@@ -81,6 +88,7 @@ func (a *App) Run(ctx context.Context) error {
 func (a *App) initDeps(ctx context.Context) error {
 	inits := []func(context.Context) error{
 		a.initDI,
+		a.initTelegramBot,
 		a.initOrderPaidSaramaConsumerGroup,
 		a.initOrderPaidConsumer,
 		a.initShipAssembledSaramaConsumerGroup,
@@ -100,6 +108,28 @@ func (a *App) initDeps(ctx context.Context) error {
 func (a *App) initDI(_ context.Context) error {
 	a.diContainer = NewDiContainer(a.config, a.closer)
 	return nil
+}
+
+func (a *App) initTelegramBot(ctx context.Context) error {
+	a.diContainer.TelegramBot().RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, func(ctx context.Context, b *bot.Bot, update *models.Update) {
+		a.logger.Info(ctx, "chat id", logger.Int64("chat_id", update.Message.Chat.ID))
+
+		_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text:   "🛸 Spaceship Factory Bot activated! You will now receive notifications about order payment and ship assembly events.",
+		})
+		if err != nil {
+			a.logger.Error(ctx, "Failed to send activation message", logger.Error(err))
+		}
+	})
+
+	return nil
+}
+
+func (a *App) runTelegramBot(ctx context.Context) {
+	a.logger.Info(ctx, "🚀 Telegram bot running")
+
+	a.diContainer.TelegramBot().Start(ctx)
 }
 
 func (a *App) initOrderPaidSaramaConsumerGroup(_ context.Context) error {

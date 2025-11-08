@@ -22,3 +22,8 @@ type ShipAssembledEventConsumerConfig interface {
 	GroupID() string
 	Config() *sarama.Config
 }
+
+type TelegramBotConfig interface {
+	Token() string
+	ChatID() int64
+}

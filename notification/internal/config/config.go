@@ -13,6 +13,7 @@ type Config struct {
 	Kafka                      KafkaConfig
 	OrderPaidEventConsumer     OrderPaidEventConsumerConfig
 	ShipAssembledEventConsumer ShipAssembledEventConsumerConfig
+	TelegramBot                TelegramBotConfig
 }
 
 func Load(path ...string) (*Config, error) {
@@ -41,10 +42,16 @@ func Load(path ...string) (*Config, error) {
 		return nil, err
 	}
 
+	telegramBotCfg, err := env.NewTelegramBotConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		Logger:                     loggerCfg,
 		Kafka:                      kafkaCfg,
 		OrderPaidEventConsumer:     orderPaidEventConsumerCfg,
 		ShipAssembledEventConsumer: shipAssembledEventConsumerCfg,
+		TelegramBot:                telegramBotCfg,
 	}, nil
 }

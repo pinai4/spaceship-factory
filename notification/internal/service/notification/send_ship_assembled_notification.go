@@ -1,12 +1,42 @@
 package notification
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 
 	"github.com/pinai4/spaceship-factory/notification/internal/model"
 )
 
 func (s *service) SendShipAssembledNotification(ctx context.Context, event model.ShipAssembledEvent) error {
-	// fmt.Printf("Sending ship assembled notification. Event: %+v\n", event)
+	message, err := s.buildShipAssembledMessage(event)
+	if err != nil {
+		return fmt.Errorf("NotificationService.SendShipAssembledNotification failed to build message: %w", err)
+	}
+
+	if err := s.telegramClient.SendMessage(ctx, s.chatID, message); err != nil {
+		return fmt.Errorf("NotificationService.SendShipAssembledNotification failed to send message to telegram: %w", err)
+	}
+
 	return nil
+}
+
+func (s *service) buildShipAssembledMessage(event model.ShipAssembledEvent) (string, error) {
+	data := struct {
+		OrderUUID    string
+		UserUUID     string
+		BuildTimeSec int64
+	}{
+		OrderUUID:    event.OrderUUID,
+		UserUUID:     event.UserUUID,
+		BuildTimeSec: event.BuildTimeSec,
+	}
+
+	var buf bytes.Buffer
+	err := s.shipAssembledTemplate.Execute(&buf, data)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }

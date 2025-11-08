@@ -8,14 +8,19 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	clientMocks "github.com/pinai4/spaceship-factory/notification/internal/client/mocks"
 	"github.com/pinai4/spaceship-factory/notification/internal/service"
 	"github.com/pinai4/spaceship-factory/notification/internal/service/notification"
 )
+
+const chatID int64 = 1
 
 type ServiceSuite struct {
 	suite.Suite
 
 	ctx context.Context
+
+	telegramClient *clientMocks.TelegramClient
 
 	service service.NotificationService
 }
@@ -23,7 +28,9 @@ type ServiceSuite struct {
 func (s *ServiceSuite) SetupTest() {
 	s.ctx = context.Background()
 
-	s.service = notification.NewService()
+	s.telegramClient = clientMocks.NewTelegramClient(s.T())
+
+	s.service = notification.NewService(s.telegramClient, chatID)
 }
 
 func (s *ServiceSuite) TearDownTest() {
