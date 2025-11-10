@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package common.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/pinai4/spaceship-factory/shared/pkg/proto/common/v1;common_v1";
+
+// Notification method (e.g. telegram, email, push, etc.)
+message NotificationMethod {
+  string provider_name = 1;
+  string target = 2;
+}
+
+// User info
+message UserInfo {
+  string login = 1;
+  string email = 2;
+  repeated NotificationMethod notification_methods = 3;
+}
+
+// All user data
+message User {
+  string uuid = 1;
+  UserInfo info = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}

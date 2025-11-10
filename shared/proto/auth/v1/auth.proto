@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+// Package auth.v1 contains API for managing auth operations
+package auth.v1;
+
+import "common/v1/user.proto";
+import "common/v1/session.proto";
+
+option go_package = "github.com/pinai4/spaceship-factory/shared/pkg/proto/auth/v1;auth_v1";
+
+// AuthService provides API for managing auth operations
+service AuthService {
+  // Login user
+  rpc Login(LoginRequest) returns (LoginResponse);
+  // Check user's active session
+  rpc Whoami(WhoamiRequest) returns (WhoamiResponse);
+}
+
+// Request to login user
+message LoginRequest {
+  string login = 1;
+  string password = 2;
+}
+
+// Response to request to login user
+message LoginResponse {
+  string session_uuid = 1;
+}
+
+// Request to check user's active session
+message WhoamiRequest {
+  string session_uuid = 1;
+}
+
+// Response to request to check user's active session
+message WhoamiResponse {
+  common.v1.Session session = 1;
+  common.v1.User user = 2;
+}

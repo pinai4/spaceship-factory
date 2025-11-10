@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+// Package user.v1 contains API for managing user operations
+package user.v1;
+
+import "common/v1/user.proto";
+
+option go_package = "github.com/pinai4/spaceship-factory/shared/pkg/proto/user/v1;user_v1";
+
+// UserService provides API for managing users
+service UserService {
+  // Register user
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  // Get user data
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+}
+
+// User registration info
+message UserRegistrationInfo {
+  common.v1.UserInfo info = 1;
+  string password = 2;
+}
+
+// Request to register user
+message RegisterRequest {
+  UserRegistrationInfo info = 1;
+}
+
+// Response to request to register user
+message RegisterResponse {
+  string user_uuid = 1;
+}
+
+// Request to get user data
+message GetUserRequest {
+  string user_uuid = 1;
+}
+
+// Response to request to get user data
+message GetUserResponse {
+  common.v1.User user = 1;
+}
