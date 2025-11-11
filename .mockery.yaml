@@ -39,3 +39,11 @@ packages:
   github.com/pinai4/spaceship-factory/notification/internal/client:
     config:
       include-regex: ".*Client"
+
+  github.com/pinai4/spaceship-factory/iam/internal/service:
+    config:
+      include-regex: ".*(Service|Hasher)$"
+
+  github.com/pinai4/spaceship-factory/iam/internal/repository:
+    config:
+      include-regex: ".*Repository"

@@ -1,0 +1,16 @@
+version: '3'
+vars:
+  GOOSE_VERSION: 'v3.26.0'
+  DB_MIGRATION_DIR: '{{.ROOT_DIR}}/migrations'
+tasks:
+  generate-db-migration:
+    desc: "Generates DB migration"
+    summary: |
+      Generates DB migration by using Goose database migration tool. 
+      Do not forget to replace placeholder 'replace_with_migration_desc' in file name 
+      with correct migration description after migration file generation
+
+    cmds:
+      - |
+        echo '🧪 Generating DB migration...'
+        go run github.com/pressly/goose/v3/cmd/goose@{{.GOOSE_VERSION}} -dir {{.DB_MIGRATION_DIR}} create replace_with_migration_desc sql

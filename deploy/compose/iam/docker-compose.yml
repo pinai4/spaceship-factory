@@ -1,0 +1,44 @@
+services:
+
+  postgres-iam:
+    image: ${POSTGRES_IMAGE_NAME}
+    container_name: postgres-iam
+    env_file:
+      - .env
+    volumes:
+      - postgres_iam_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Automatically restart the container if it crashes
+    # Do not restart if the container was stopped manually
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  redis-iam:
+    image: ${REDIS_IMAGE_NAME}
+    container_name: redis-iam
+    env_file:
+      - .env
+    ports:
+      - "${REDIS_PORT}:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+volumes:
+  postgres_iam_data:
+
+networks:
+  microservices-net:
+    external: true

@@ -433,16 +433,32 @@ tasks:
       - echo "[task] 🛑 Stopping Order with dependencies"
       - docker compose down --volumes
 
+  up-iam:
+    desc: Start IAM service and all its dependencies
+    dir: deploy/compose/iam
+    cmds:
+      - echo "[task] 📦 Starting IAM with dependencies"
+      - docker compose up --build --detach
+
+  down-iam:
+    desc: Stop and remove IAM service and all its dependencies
+    dir: deploy/compose/iam
+    cmds:
+      - echo "[task] 🛑 Stopping IAM with dependencies"
+      - docker compose down --volumes
+
   up-all:
     desc: Start all services sequentially along with their dependencies
     cmds:
       - task up-core
       - task up-inventory
       - task up-order
+      - task up-iam
 
   down-all:
     desc: Stop and remove all services sequentially along with their dependencies
     cmds:
+      - task down-iam
       - task down-order
       - task down-inventory
       - task down-core
