@@ -24,7 +24,7 @@ func (a *api) GetUser(ctx context.Context, req *userV1.GetUserRequest) (*userV1.
 		if errors.Is(err, model.ErrUserNotFound) {
 			return nil, status.Errorf(codes.NotFound, "user not found")
 		}
-		return nil, err
+		return nil, status.Error(codes.Internal, "failed to get user")
 	}
 
 	return &userV1.GetUserResponse{User: converter.UserToProto(user)}, nil

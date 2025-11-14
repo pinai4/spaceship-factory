@@ -1,6 +1,6 @@
 //go:build unit || !integration
 
-package user_test
+package auth_test
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 	"github.com/pinai4/spaceship-factory/iam/internal/model"
 )
 
-func (s *ServiceSuite) TestGet_Success() {
+func (s *ServiceSuite) TestWhoami_Success() {
 	now := time.Now()
 
 	user := model.User{
@@ -31,22 +31,30 @@ func (s *ServiceSuite) TestGet_Success() {
 		UpdatedAt:    &now,
 	}
 
-	s.userRepository.On("Get", s.ctx, user.ID).Return(user, nil).Once()
+	session := model.Session{
+		ID:        uuid.New(),
+		User:      user,
+		CreatedAt: now,
+		UpdatedAt: &now,
+		ExpiresAt: now,
+	}
 
-	res, err := s.service.Get(s.ctx, user.ID)
+	s.sessionRepository.On("Get", s.ctx, session.ID).Return(session, nil).Once()
+
+	res, err := s.service.Whoami(s.ctx, session.ID)
 	s.Require().NoError(err)
-	s.Require().Equal(user, res)
+	s.Require().Equal(session, res)
 }
 
-func (s *ServiceSuite) TestGet_RepoError() {
+func (s *ServiceSuite) TestWhoami_RepoError() {
 	var (
 		repoErr = errors.New("test repo error")
 		id      = uuid.New()
 	)
 
-	s.userRepository.On("Get", s.ctx, id).Return(model.User{}, repoErr).Once()
+	s.sessionRepository.On("Get", s.ctx, id).Return(model.Session{}, repoErr).Once()
 
-	res, err := s.service.Get(s.ctx, id)
+	res, err := s.service.Whoami(s.ctx, id)
 	s.Require().Error(err)
 	s.Require().ErrorIs(err, repoErr)
 	s.Require().Empty(res)

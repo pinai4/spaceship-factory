@@ -11,7 +11,7 @@ import (
 )
 
 func (s *service) Register(ctx context.Context, id uuid.UUID, userRegistrationInfo model.UserRegistrationInfo) error {
-	passwordHash, err := s.hasher.Hash(userRegistrationInfo.Password)
+	passwordHash, err := s.passwordHasher.Hash(userRegistrationInfo.Password)
 	if err != nil {
 		return fmt.Errorf("UserService.Register failed to hash password: %w", err)
 	}

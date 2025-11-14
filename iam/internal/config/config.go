@@ -13,6 +13,8 @@ type Config struct {
 	GRPCServer   GRPCServerConfig
 	Postgres     PostgresConfig
 	DBMigrations DBMigrationsConfig
+	Redis        RedisConfig
+	Session      SessionConfig
 }
 
 func Load(path ...string) (*Config, error) {
@@ -41,10 +43,22 @@ func Load(path ...string) (*Config, error) {
 		return nil, err
 	}
 
+	redisCfg, err := env.NewRedisConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	sessionCfg, err := env.NewSessionConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		Logger:       loggerCfg,
 		GRPCServer:   grpcServerCfg,
 		Postgres:     postgresCfg,
 		DBMigrations: dbMigrationsCfg,
+		Redis:        redisCfg,
+		Session:      sessionCfg,
 	}, nil
 }

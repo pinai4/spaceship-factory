@@ -11,7 +11,7 @@ import (
 	"github.com/pinai4/spaceship-factory/iam/internal/model"
 )
 
-func (s *ServiceSuite) TestRegisterSuccess() {
+func (s *ServiceSuite) TestRegister_Success() {
 	id := uuid.New()
 
 	registrationInfo := model.UserRegistrationInfo{
@@ -44,7 +44,7 @@ func (s *ServiceSuite) TestRegisterSuccess() {
 	s.Require().NoError(err)
 }
 
-func (s *ServiceSuite) TestRegisterHasherError() {
+func (s *ServiceSuite) TestRegister_HasherError() {
 	hasherErr := errors.New("test passwordHasher error")
 
 	id := uuid.New()
@@ -70,7 +70,7 @@ func (s *ServiceSuite) TestRegisterHasherError() {
 	s.Require().ErrorIs(err, hasherErr)
 }
 
-func (s *ServiceSuite) TestRegisterRepoError() {
+func (s *ServiceSuite) TestRegister_RepoError() {
 	repoErr := errors.New("test repo error")
 
 	id := uuid.New()

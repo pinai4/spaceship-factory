@@ -15,6 +15,7 @@ import (
 	"github.com/pinai4/spaceship-factory/platform/pkg/grpc/health"
 	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
 	"github.com/pinai4/spaceship-factory/platform/pkg/sqldb/migrator"
+	authV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/auth/v1"
 	userV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/user/v1"
 )
 
@@ -116,6 +117,7 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	health.RegisterService(a.grpcServer)
 
 	userV1.RegisterUserServiceServer(a.grpcServer, a.diContainer.UserV1API(ctx))
+	authV1.RegisterAuthServiceServer(a.grpcServer, a.diContainer.AuthV1API(ctx))
 
 	return nil
 }

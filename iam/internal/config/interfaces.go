@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 type LoggerConfig interface {
 	Level() string
 	AsJSON() bool
@@ -15,4 +17,15 @@ type PostgresConfig interface {
 
 type DBMigrationsConfig interface {
 	Path() string
+}
+
+type RedisConfig interface {
+	Address() string
+	ConnectionTimeout() time.Duration
+	MaxIdle() int
+	IdleTimeout() time.Duration
+}
+
+type SessionConfig interface {
+	TTL() time.Duration
 }

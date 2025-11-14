@@ -9,12 +9,12 @@ var _ def.UserService = (*service)(nil)
 
 type service struct {
 	userRepository repository.UserRepository
-	hasher         def.PasswordHasher
+	passwordHasher def.PasswordHasher
 }
 
-func NewService(userRepository repository.UserRepository, hasher def.PasswordHasher) *service {
+func NewService(userRepository repository.UserRepository, passwordHasher def.PasswordHasher) *service {
 	return &service{
 		userRepository: userRepository,
-		hasher:         hasher,
+		passwordHasher: passwordHasher,
 	}
 }

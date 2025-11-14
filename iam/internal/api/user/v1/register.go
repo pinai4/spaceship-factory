@@ -20,7 +20,7 @@ func (a *api) Register(ctx context.Context, req *userV1.RegisterRequest) (*userV
 		if errors.Is(err, model.ErrUserAlreadyExists) {
 			return nil, status.Errorf(codes.AlreadyExists, "user already exists")
 		}
-		return nil, err
+		return nil, status.Error(codes.Internal, "failed to register user")
 	}
 
 	return &userV1.RegisterResponse{UserUuid: id.String()}, nil
