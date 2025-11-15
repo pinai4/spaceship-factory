@@ -9,12 +9,13 @@ import (
 )
 
 type Config struct {
-	Logger       LoggerConfig
-	GRPCServer   GRPCServerConfig
-	Postgres     PostgresConfig
-	DBMigrations DBMigrationsConfig
-	Redis        RedisConfig
-	Session      SessionConfig
+	Logger         LoggerConfig
+	GRPCServer     GRPCServerConfig
+	Postgres       PostgresConfig
+	DBMigrations   DBMigrationsConfig
+	Redis          RedisConfig
+	Session        SessionConfig
+	AppEnvironment AppEnvironmentConfig
 }
 
 func Load(path ...string) (*Config, error) {
@@ -53,12 +54,18 @@ func Load(path ...string) (*Config, error) {
 		return nil, err
 	}
 
+	appEnvironmentCfg, err := env.NewAppEnvironmentConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
-		Logger:       loggerCfg,
-		GRPCServer:   grpcServerCfg,
-		Postgres:     postgresCfg,
-		DBMigrations: dbMigrationsCfg,
-		Redis:        redisCfg,
-		Session:      sessionCfg,
+		Logger:         loggerCfg,
+		GRPCServer:     grpcServerCfg,
+		Postgres:       postgresCfg,
+		DBMigrations:   dbMigrationsCfg,
+		Redis:          redisCfg,
+		Session:        sessionCfg,
+		AppEnvironment: appEnvironmentCfg,
 	}, nil
 }

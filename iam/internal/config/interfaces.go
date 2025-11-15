@@ -29,3 +29,9 @@ type RedisConfig interface {
 type SessionConfig interface {
 	TTL() time.Duration
 }
+
+type AppEnvironmentConfig interface {
+	IsDev() bool
+	IsTest() bool
+	IsProd() bool
+}

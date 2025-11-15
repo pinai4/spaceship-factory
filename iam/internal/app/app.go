@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/pinai4/spaceship-factory/iam/internal/config"
+	"github.com/pinai4/spaceship-factory/iam/internal/repository/seeds"
 	"github.com/pinai4/spaceship-factory/platform/pkg/closer"
 	"github.com/pinai4/spaceship-factory/platform/pkg/grpc/health"
 	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
@@ -50,6 +51,7 @@ func (a *App) initDeps(ctx context.Context) error {
 	inits := []func(context.Context) error{
 		a.initDI,
 		a.initDBMigrations,
+		a.initDBSeeds,
 		a.initListener,
 		a.initGRPCServerOptions,
 		a.initGRPCServer,
@@ -73,6 +75,19 @@ func (a *App) initDI(_ context.Context) error {
 func (a *App) initDBMigrations(ctx context.Context) error {
 	migratorRunner := migrator.New(a.diContainer.PostgresDB(ctx).DB, a.config.DBMigrations.Path())
 	if err := migratorRunner.Up(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) initDBSeeds(ctx context.Context) error {
+	if !a.config.AppEnvironment.IsDev() {
+		return nil
+	}
+
+	seeder := seeds.New(a.diContainer.UserRepository(ctx), a.diContainer.SessionRepository(ctx))
+	if err := seeder.Seed(ctx); err != nil {
 		return err
 	}
 
