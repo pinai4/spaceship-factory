@@ -7,6 +7,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	inventoryV1API "github.com/pinai4/spaceship-factory/inventory/internal/api/inventory/v1"
 	"github.com/pinai4/spaceship-factory/inventory/internal/config"
@@ -15,6 +17,7 @@ import (
 	"github.com/pinai4/spaceship-factory/inventory/internal/service"
 	partService "github.com/pinai4/spaceship-factory/inventory/internal/service/part"
 	"github.com/pinai4/spaceship-factory/platform/pkg/closer"
+	authV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/auth/v1"
 	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
 )
 
@@ -30,6 +33,8 @@ type diContainer struct {
 
 	mongoDBClient *mongo.Client
 	mongoDBHandle *mongo.Database
+
+	authV1ClientGRPC authV1.AuthServiceClient
 }
 
 func NewDiContainer(config *config.Config, closer *closer.Closer) *diContainer {
@@ -62,7 +67,7 @@ func (d *diContainer) PartRepository(ctx context.Context) repository.PartReposit
 
 func (d *diContainer) MongoDBClient(ctx context.Context) *mongo.Client {
 	if d.mongoDBClient == nil {
-		client, err := mongo.Connect(ctx, options.Client().ApplyURI(d.Config(ctx).Mongo.URI()))
+		client, err := mongo.Connect(ctx, options.Client().ApplyURI(d.Config().Mongo.URI()))
 		if err != nil {
 			panic(fmt.Sprintf("failed to connect to MongoDB: %s\n", err.Error()))
 		}
@@ -84,12 +89,31 @@ func (d *diContainer) MongoDBClient(ctx context.Context) *mongo.Client {
 
 func (d *diContainer) MongoDBHandle(ctx context.Context) *mongo.Database {
 	if d.mongoDBHandle == nil {
-		d.mongoDBHandle = d.MongoDBClient(ctx).Database(d.Config(ctx).Mongo.DatabaseName())
+		d.mongoDBHandle = d.MongoDBClient(ctx).Database(d.Config().Mongo.DatabaseName())
 	}
 
 	return d.mongoDBHandle
 }
 
-func (d *diContainer) Config(_ context.Context) *config.Config {
+func (d *diContainer) AuthV1ClientGRPC() authV1.AuthServiceClient {
+	if d.authV1ClientGRPC == nil {
+		conn, err := grpc.NewClient(
+			d.Config().IAMGRPCClient.Address(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+		if err != nil {
+			panic(fmt.Sprintf("failed to connect to IAM Service (GRPC): %s\n", err.Error()))
+		}
+		d.closer.AddNamed("IAMClient connection", func(ctx context.Context) error {
+			return conn.Close()
+		})
+
+		d.authV1ClientGRPC = authV1.NewAuthServiceClient(conn)
+	}
+
+	return d.authV1ClientGRPC
+}
+
+func (d *diContainer) Config() *config.Config {
 	return d.config
 }

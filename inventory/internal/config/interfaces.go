@@ -19,3 +19,7 @@ type AppEnvironmentConfig interface {
 	IsTest() bool
 	IsProd() bool
 }
+
+type IAMGRPCClientConfig interface {
+	Address() string
+}

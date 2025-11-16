@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/selector"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -15,16 +17,18 @@ import (
 	"github.com/pinai4/spaceship-factory/platform/pkg/closer"
 	"github.com/pinai4/spaceship-factory/platform/pkg/grpc/health"
 	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
+	platformMiddlewareGRPC "github.com/pinai4/spaceship-factory/platform/pkg/middleware/grpc"
 	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
 )
 
 type App struct {
-	config      *config.Config
-	closer      *closer.Closer
-	logger      logger.Logger
-	diContainer *diContainer
-	grpcServer  *grpc.Server
-	listener    net.Listener
+	config            *config.Config
+	closer            *closer.Closer
+	logger            logger.Logger
+	diContainer       *diContainer
+	grpcServerOptions []grpc.ServerOption
+	grpcServer        *grpc.Server
+	listener          net.Listener
 }
 
 func New(ctx context.Context, config *config.Config, closer *closer.Closer, logger logger.Logger) (*App, error) {
@@ -47,6 +51,7 @@ func (a *App) initDeps(ctx context.Context) error {
 		a.initDI,
 		a.initDBSeeds,
 		a.initListener,
+		a.initGRPCServerOptions,
 		a.initGRPCServer,
 	}
 
@@ -97,8 +102,22 @@ func (a *App) initListener(_ context.Context) error {
 	return nil
 }
 
+func (a *App) initGRPCServerOptions(_ context.Context) error {
+	allButHealthZ := func(ctx context.Context, callMeta interceptors.CallMeta) bool {
+		return health.GetServiceName() != callMeta.Service
+	}
+
+	authInterceptor := platformMiddlewareGRPC.NewAuthInterceptor(a.diContainer.AuthV1ClientGRPC())
+
+	a.grpcServerOptions = append(a.grpcServerOptions, grpc.Creds(insecure.NewCredentials()), grpc.ChainUnaryInterceptor(
+		selector.UnaryServerInterceptor(authInterceptor.Unary(), selector.MatchFunc(allButHealthZ)),
+	))
+
+	return nil
+}
+
 func (a *App) initGRPCServer(ctx context.Context) error {
-	a.grpcServer = grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
+	a.grpcServer = grpc.NewServer(a.grpcServerOptions...)
 	a.closer.AddNamed("gRPC server", func(ctx context.Context) error {
 		a.grpcServer.GracefulStop()
 		return nil

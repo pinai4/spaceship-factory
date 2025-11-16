@@ -13,6 +13,7 @@ type Config struct {
 	GRPCServer     GRPCServerConfig
 	Mongo          MongoConfig
 	AppEnvironment AppEnvironmentConfig
+	IAMGRPCClient  IAMGRPCClientConfig
 }
 
 func Load(path ...string) (*Config, error) {
@@ -41,10 +42,16 @@ func Load(path ...string) (*Config, error) {
 		return nil, err
 	}
 
+	iamGRPCClientCfg, err := env.NewIAMGRPCClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		Logger:         loggerCfg,
 		GRPCServer:     grpcServerCfg,
 		Mongo:          mongoCfg,
 		AppEnvironment: appEnvironmentCfg,
+		IAMGRPCClient:  iamGRPCClientCfg,
 	}, nil
 }

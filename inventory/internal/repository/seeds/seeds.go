@@ -4,10 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/pinai4/spaceship-factory/inventory/internal/model"
 	"github.com/pinai4/spaceship-factory/inventory/internal/repository"
+)
+
+var (
+	part1ID = "00000000-0000-0000-0000-333333333333"
+	part2ID = "00000000-0000-0000-0000-444444444444"
 )
 
 type seeder struct {
@@ -30,7 +33,7 @@ func (s *seeder) Seed(ctx context.Context) error {
 	now := time.Now()
 
 	part1 := model.Part{
-		UUID:          uuid.Nil.String(),
+		UUID:          part1ID,
 		Name:          "Turbo Engine X200",
 		Description:   "High-performance turbo engine suitable for small aircraft.",
 		Price:         125000.50,
@@ -61,7 +64,7 @@ func (s *seeder) Seed(ctx context.Context) error {
 	}
 
 	part2 := model.Part{
-		UUID:          uuid.NewString(),
+		UUID:          part2ID,
 		Name:          "Titanium Wing Panel",
 		Description:   "Lightweight titanium alloy wing panel with anti-corrosion coating.",
 		Price:         32000.0,
