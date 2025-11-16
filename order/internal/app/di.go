@@ -22,6 +22,7 @@ import (
 	"github.com/pinai4/spaceship-factory/order/internal/service/order/producer"
 	"github.com/pinai4/spaceship-factory/platform/pkg/closer"
 	orderV1 "github.com/pinai4/spaceship-factory/shared/pkg/openapi/order/v1"
+	authV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/auth/v1"
 	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
 	paymentV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/payment/v1"
 )
@@ -44,6 +45,8 @@ type diContainer struct {
 
 	paymentV1ClientGRPC paymentV1.PaymentServiceClient
 	paymentV1Client     client.PaymentClient
+
+	authV1ClientGRPC authV1.AuthServiceClient
 
 	syncProducer sarama.SyncProducer
 }
@@ -159,6 +162,25 @@ func (d *diContainer) PaymentV1Client() client.PaymentClient {
 	}
 
 	return d.paymentV1Client
+}
+
+func (d *diContainer) AuthV1ClientGRPC() authV1.AuthServiceClient {
+	if d.authV1ClientGRPC == nil {
+		conn, err := grpc.NewClient(
+			d.Config().IAMGRPCClient.Address(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+		if err != nil {
+			panic(fmt.Sprintf("failed to connect to IAM Service (GRPC): %s\n", err.Error()))
+		}
+		d.closer.AddNamed("IAMClient connection", func(ctx context.Context) error {
+			return conn.Close()
+		})
+
+		d.authV1ClientGRPC = authV1.NewAuthServiceClient(conn)
+	}
+
+	return d.authV1ClientGRPC
 }
 
 func (d *diContainer) SyncProducer() sarama.SyncProducer {

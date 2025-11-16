@@ -2,9 +2,12 @@ module github.com/pinai4/spaceship-factory/platform
 
 go 1.24.0
 
+replace github.com/pinai4/spaceship-factory/shared => ../shared
+
 require (
 	github.com/IBM/sarama v1.46.3
 	github.com/docker/go-connections v0.6.0
+	github.com/pinai4/spaceship-factory/shared v0.0.0-00010101000000-000000000000
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/testcontainers/testcontainers-go v0.39.0
 	go.mongodb.org/mongo-driver v1.17.4

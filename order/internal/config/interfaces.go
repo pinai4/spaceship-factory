@@ -32,6 +32,10 @@ type PaymentGRPCClientConfig interface {
 	Address() string
 }
 
+type IAMGRPCClientConfig interface {
+	Address() string
+}
+
 type KafkaConfig interface {
 	Brokers() []string
 }

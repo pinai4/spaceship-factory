@@ -27,7 +27,7 @@ func (s *APISuite) TestCreateOrderSuccess() {
 
 	s.orderService.On("Create", s.ctx, mock.Anything, createOrder).Return(totalPrice, nil)
 
-	res, err := s.api.CreateOrder(s.ctx, requestOpenAPI)
+	res, err := s.api.CreateOrder(s.ctx, requestOpenAPI, orderV1.CreateOrderParams{})
 	s.Require().NoError(err)
 	s.Require().NotNil(res)
 
@@ -51,7 +51,7 @@ func (s *APISuite) TestCreateOrderBadRequestPartsListEmptyError() {
 
 	s.orderService.AssertNotCalled(s.T(), "Create", s.ctx, mock.Anything, mock.Anything)
 
-	res, err := s.api.CreateOrder(s.ctx, requestOpenAPI)
+	res, err := s.api.CreateOrder(s.ctx, requestOpenAPI, orderV1.CreateOrderParams{})
 	s.Require().NoError(err)
 	s.Require().NotNil(res)
 
@@ -75,7 +75,7 @@ func (s *APISuite) TestCreateOrderBadRequestPartsNotAvailableError() {
 
 	s.orderService.On("Create", s.ctx, mock.Anything, createOrder).Return(float64(0), model.ErrOrderedPartsNotAvailable)
 
-	res, err := s.api.CreateOrder(s.ctx, requestOpenAPI)
+	res, err := s.api.CreateOrder(s.ctx, requestOpenAPI, orderV1.CreateOrderParams{})
 	s.Require().NoError(err)
 	s.Require().NotNil(res)
 

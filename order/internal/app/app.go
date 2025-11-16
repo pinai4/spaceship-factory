@@ -17,7 +17,8 @@ import (
 	"github.com/pinai4/spaceship-factory/platform/pkg/closer"
 	platformConsumer "github.com/pinai4/spaceship-factory/platform/pkg/kafka/consumer"
 	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
-	platformMiddleware "github.com/pinai4/spaceship-factory/platform/pkg/middleware/kafka"
+	platformMiddlewareHTTP "github.com/pinai4/spaceship-factory/platform/pkg/middleware/http"
+	platformMiddlewareKafka "github.com/pinai4/spaceship-factory/platform/pkg/middleware/kafka"
 	"github.com/pinai4/spaceship-factory/platform/pkg/sqldb/migrator"
 	orderV1 "github.com/pinai4/spaceship-factory/shared/pkg/openapi/order/v1"
 )
@@ -128,7 +129,13 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(10 * time.Second))
 
-	r.Mount("/", orderServer)
+	r.Route("/", func(api chi.Router) {
+		api.Use(platformMiddlewareHTTP.
+			NewAuthMiddleware(a.diContainer.AuthV1ClientGRPC()).
+			Handle,
+		)
+		api.Mount("/", orderServer)
+	})
 
 	// Manual health check handler
 	r.HandleFunc("/api/v1/health", func(w http.ResponseWriter, r *http.Request) {
@@ -185,7 +192,7 @@ func (a *App) initConsumer(ctx context.Context) error {
 			a.config.ShipAssembledEventConsumer.Topic(),
 		},
 		a.logger,
-		platformMiddleware.Logging(a.logger),
+		platformMiddlewareKafka.Logging(a.logger),
 	)
 
 	a.consumer = shipassembled.New(pfmConsumer, a.diContainer.OrderService(ctx))

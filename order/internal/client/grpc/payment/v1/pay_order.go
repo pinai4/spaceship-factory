@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	grpcAuth "github.com/pinai4/spaceship-factory/platform/pkg/middleware/grpc"
 	paymentV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/payment/v1"
 )
 
 func (c *client) PayOrder(ctx context.Context, orderUUID, userUUID, paymentMethod string) (string, error) {
+	ctx = grpcAuth.ForwardSessionUUIDToGRPC(ctx)
+
 	parsePaymentMethod := func(s string) paymentV1.PaymentMethod {
 		if val, ok := paymentV1.PaymentMethod_value[s]; ok {
 			return paymentV1.PaymentMethod(val)

@@ -15,6 +15,7 @@ type Config struct {
 	DBMigrations               DBMigrationsConfig
 	InventoryGRPCClient        InventoryGRPCClientConfig
 	PaymentGRPCClient          PaymentGRPCClientConfig
+	IAMGRPCClient              IAMGRPCClientConfig
 	Kafka                      KafkaConfig
 	OrderPaidEventProducer     OrderPaidEventProducerConfig
 	ShipAssembledEventConsumer ShipAssembledEventConsumerConfig
@@ -56,6 +57,11 @@ func Load(path ...string) (*Config, error) {
 		return nil, err
 	}
 
+	iamGRPCClientCfg, err := env.NewIAMGRPCClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	kafkaCfg, err := env.NewKafkaConfig()
 	if err != nil {
 		return nil, err
@@ -78,6 +84,7 @@ func Load(path ...string) (*Config, error) {
 		DBMigrations:               dbMigrationsCfg,
 		InventoryGRPCClient:        inventoryGRPCClientCfg,
 		PaymentGRPCClient:          paymentGRPCClientCfg,
+		IAMGRPCClient:              iamGRPCClientCfg,
 		Kafka:                      kafkaCfg,
 		OrderPaidEventProducer:     orderPaidEventProducerCfg,
 		ShipAssembledEventConsumer: shipAssembledEventConsumerCfg,

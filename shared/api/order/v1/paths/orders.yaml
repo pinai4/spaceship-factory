@@ -1,3 +1,6 @@
+parameters:
+  - $ref: "../headers/session_uuid.yaml"
+
 post:
   summary: Create a new order
   operationId: CreateOrder
