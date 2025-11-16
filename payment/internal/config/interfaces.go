@@ -8,3 +8,7 @@ type LoggerConfig interface {
 type GRPCServerConfig interface {
 	Address() string
 }
+
+type IAMGRPCClientConfig interface {
+	Address() string
+}

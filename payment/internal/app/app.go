@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/selector"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -14,6 +16,7 @@ import (
 	"github.com/pinai4/spaceship-factory/platform/pkg/closer"
 	"github.com/pinai4/spaceship-factory/platform/pkg/grpc/health"
 	"github.com/pinai4/spaceship-factory/platform/pkg/logger"
+	platformMiddlewareGRPC "github.com/pinai4/spaceship-factory/platform/pkg/middleware/grpc"
 	paymentV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/payment/v1"
 )
 
@@ -84,25 +87,34 @@ func (a *App) initListener(_ context.Context) error {
 	return nil
 }
 
-func (a *App) initGRPCServerOptions(ctx context.Context) error {
-	printerInterceptor := func(
-		ctx context.Context,
-		req interface{},
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
-	) (interface{}, error) {
-		resp, err := handler(ctx, req)
-		if err == nil {
-			if r, ok := resp.(*paymentV1.PayOrderResponse); ok && r != nil {
-				a.logger.Info(ctx, "Payment was successful", logger.String("transaction_id", r.GetTransactionUuid()))
+func (a *App) initGRPCServerOptions(_ context.Context) error {
+	logTranIDInterceptor := func() grpc.UnaryServerInterceptor {
+		return func(
+			ctx context.Context,
+			req interface{},
+			info *grpc.UnaryServerInfo,
+			handler grpc.UnaryHandler,
+		) (interface{}, error) {
+			resp, err := handler(ctx, req)
+			if err == nil {
+				if r, ok := resp.(*paymentV1.PayOrderResponse); ok && r != nil {
+					a.logger.Info(ctx, "Payment was successful", logger.String("transaction_id", r.GetTransactionUuid()))
+				}
 			}
-		}
 
-		return resp, err
+			return resp, err
+		}
 	}
 
+	allButHealthZ := func(ctx context.Context, callMeta interceptors.CallMeta) bool {
+		return health.GetServiceName() != callMeta.Service
+	}
+
+	authInterceptor := platformMiddlewareGRPC.NewAuthInterceptor(a.diContainer.AuthV1ClientGRPC())
+
 	a.grpcServerOptions = append(a.grpcServerOptions, grpc.Creds(insecure.NewCredentials()), grpc.ChainUnaryInterceptor(
-		printerInterceptor,
+		selector.UnaryServerInterceptor(authInterceptor.Unary(), selector.MatchFunc(allButHealthZ)),
+		selector.UnaryServerInterceptor(logTranIDInterceptor(), selector.MatchFunc(allButHealthZ)),
 	))
 
 	return nil

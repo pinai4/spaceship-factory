@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Logger     LoggerConfig
-	GRPCServer GRPCServerConfig
+	Logger        LoggerConfig
+	GRPCServer    GRPCServerConfig
+	IAMGRPCClient IAMGRPCClientConfig
 }
 
 func Load(path ...string) (*Config, error) {
@@ -29,8 +30,14 @@ func Load(path ...string) (*Config, error) {
 		return nil, err
 	}
 
+	iamGRPCClientCfg, err := env.NewIAMGRPCClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
-		Logger:     loggerCfg,
-		GRPCServer: grpcServerCfg,
+		Logger:        loggerCfg,
+		GRPCServer:    grpcServerCfg,
+		IAMGRPCClient: iamGRPCClientCfg,
 	}, nil
 }

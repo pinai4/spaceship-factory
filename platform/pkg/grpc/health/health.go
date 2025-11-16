@@ -30,3 +30,8 @@ func (s *Server) Watch(req *grpc_health_v1.HealthCheckRequest, stream grpc_healt
 func RegisterService(s *grpc.Server) {
 	grpc_health_v1.RegisterHealthServer(s, &Server{})
 }
+
+// GetServiceName returns gRPC service name
+func GetServiceName() string {
+	return grpc_health_v1.Health_ServiceDesc.ServiceName
+}
