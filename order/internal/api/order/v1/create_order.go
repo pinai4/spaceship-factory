@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	httpAuth "github.com/pinai4/spaceship-factory/platform/pkg/middleware/http"
 
 	"github.com/pinai4/spaceship-factory/order/internal/converter"
 	"github.com/pinai4/spaceship-factory/order/internal/model"
@@ -12,6 +13,13 @@ import (
 )
 
 func (a *api) CreateOrder(ctx context.Context, req *orderV1.CreateOrderRequest, _ orderV1.CreateOrderParams) (orderV1.CreateOrderRes, error) {
+	if req.UserUUID.String() != httpAuth.GetUserIDFromContext(ctx) {
+		return &orderV1.BadRequestError{
+			Code:    400,
+			Message: "user id conflicts with session data",
+		}, nil
+	}
+
 	if len(req.PartUuids) == 0 {
 		return &orderV1.BadRequestError{
 			Code:    400,

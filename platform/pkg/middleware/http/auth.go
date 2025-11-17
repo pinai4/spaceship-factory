@@ -61,6 +61,17 @@ func GetUserFromContext(ctx context.Context) (*commonV1.User, bool) {
 	return grpcAuth.GetUserFromContext(ctx)
 }
 
+// GetUserIDFromContext extracts the user id from the context
+func GetUserIDFromContext(ctx context.Context) string {
+	var id string
+	u, ok := grpcAuth.GetUserFromContext(ctx)
+	if ok {
+		id = u.GetUuid()
+	}
+
+	return id
+}
+
 // GetSessionUUIDFromContext extracts the session UUID from the context
 func GetSessionUUIDFromContext(ctx context.Context) (string, bool) {
 	return grpcAuth.GetSessionUUIDFromContext(ctx)
