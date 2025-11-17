@@ -5,8 +5,7 @@ import (
 )
 
 type telegramBotEnvConfig struct {
-	Token  string `env:"TELEGRAM_BOT_TOKEN,required"`
-	ChatID int64  `env:"TELEGRAM_BOT_CHAT_ID,required"`
+	Token string `env:"TELEGRAM_BOT_TOKEN,required"`
 }
 
 type telegramBotConfig struct {
@@ -24,8 +23,4 @@ func NewTelegramBotConfig() (*telegramBotConfig, error) {
 
 func (cfg *telegramBotConfig) Token() string {
 	return cfg.raw.Token
-}
-
-func (cfg *telegramBotConfig) ChatID() int64 {
-	return cfg.raw.ChatID
 }

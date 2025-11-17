@@ -42,7 +42,7 @@ func (s *seeder) getUser() model.User {
 			NotificationMethods: []model.NotificationMethod{
 				{
 					Provider: notificationMethodProvider,
-					Target:   "111111111",
+					Target:   "",
 				},
 			},
 		},

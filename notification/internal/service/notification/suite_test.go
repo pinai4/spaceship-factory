@@ -13,14 +13,13 @@ import (
 	"github.com/pinai4/spaceship-factory/notification/internal/service/notification"
 )
 
-const chatID int64 = 1
-
 type ServiceSuite struct {
 	suite.Suite
 
 	ctx context.Context
 
 	telegramClient *clientMocks.TelegramClient
+	userClient     *clientMocks.UserClient
 
 	service service.NotificationService
 }
@@ -29,8 +28,9 @@ func (s *ServiceSuite) SetupTest() {
 	s.ctx = context.Background()
 
 	s.telegramClient = clientMocks.NewTelegramClient(s.T())
+	s.userClient = clientMocks.NewUserClient(s.T())
 
-	s.service = notification.NewService(s.telegramClient, chatID)
+	s.service = notification.NewService(s.telegramClient, s.userClient)
 }
 
 func (s *ServiceSuite) TearDownTest() {

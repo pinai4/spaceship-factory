@@ -25,5 +25,8 @@ type ShipAssembledEventConsumerConfig interface {
 
 type TelegramBotConfig interface {
 	Token() string
-	ChatID() int64
+}
+
+type IAMGRPCClientConfig interface {
+	Address() string
 }

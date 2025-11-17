@@ -14,6 +14,7 @@ type Config struct {
 	OrderPaidEventConsumer     OrderPaidEventConsumerConfig
 	ShipAssembledEventConsumer ShipAssembledEventConsumerConfig
 	TelegramBot                TelegramBotConfig
+	IAMGRPCClient              IAMGRPCClientConfig
 }
 
 func Load(path ...string) (*Config, error) {
@@ -47,11 +48,17 @@ func Load(path ...string) (*Config, error) {
 		return nil, err
 	}
 
+	iamGRPCClientCfg, err := env.NewIAMGRPCClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		Logger:                     loggerCfg,
 		Kafka:                      kafkaCfg,
 		OrderPaidEventConsumer:     orderPaidEventConsumerCfg,
 		ShipAssembledEventConsumer: shipAssembledEventConsumerCfg,
 		TelegramBot:                telegramBotCfg,
+		IAMGRPCClient:              iamGRPCClientCfg,
 	}, nil
 }

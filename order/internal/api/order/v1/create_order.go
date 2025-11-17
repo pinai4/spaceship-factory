@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	httpAuth "github.com/pinai4/spaceship-factory/platform/pkg/middleware/http"
 
 	"github.com/pinai4/spaceship-factory/order/internal/converter"
 	"github.com/pinai4/spaceship-factory/order/internal/model"
+	httpAuth "github.com/pinai4/spaceship-factory/platform/pkg/middleware/http"
 	orderV1 "github.com/pinai4/spaceship-factory/shared/pkg/openapi/order/v1"
 )
 
