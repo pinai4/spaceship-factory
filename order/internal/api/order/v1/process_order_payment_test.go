@@ -9,7 +9,7 @@ import (
 	orderV1 "github.com/pinai4/spaceship-factory/shared/pkg/openapi/order/v1"
 )
 
-func (s *APISuite) TestProcessOrderPaymentSuccess() {
+func (s *APISuite) TestProcessOrderPayment_Success() {
 	var (
 		orderUUID = uuid.New()
 
@@ -37,7 +37,7 @@ func (s *APISuite) TestProcessOrderPaymentSuccess() {
 	s.Require().Equal(expectedResponseOpenAPI, res)
 }
 
-func (s *APISuite) TestProcessOrderPaymentNotFound() {
+func (s *APISuite) TestProcessOrderPayment_NotFound() {
 	var (
 		orderUUID = uuid.New()
 

@@ -12,7 +12,7 @@ import (
 	orderV1 "github.com/pinai4/spaceship-factory/shared/pkg/openapi/order/v1"
 )
 
-func (s *APISuite) TestGetOrderSuccess() {
+func (s *APISuite) TestGetOrder_Success() {
 	var (
 		order     = buildTestOrder()
 		orderUUID = order.UUID
@@ -32,7 +32,7 @@ func (s *APISuite) TestGetOrderSuccess() {
 	s.Require().Equal(expectedResponseOpenAPI, res)
 }
 
-func (s *APISuite) TestGetOrderNotFound() {
+func (s *APISuite) TestGetOrder_NotFound() {
 	var (
 		orderUUID = uuid.New()
 
@@ -52,7 +52,7 @@ func (s *APISuite) TestGetOrderNotFound() {
 	s.Require().Equal(404, resErr.GetCode())
 }
 
-func (s *APISuite) TestGetOrderServiceError() {
+func (s *APISuite) TestGetOrder_ServiceError() {
 	var (
 		serviceErr = errors.New("test error")
 

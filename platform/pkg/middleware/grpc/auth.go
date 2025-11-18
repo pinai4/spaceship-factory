@@ -114,6 +114,11 @@ func AddSessionUUIDToContext(ctx context.Context, sessionUUID string) context.Co
 	return context.WithValue(ctx, sessionUUIDContextKey, sessionUUID)
 }
 
+// AddUserToContext adds the session UUID to the context
+func AddUserToContext(ctx context.Context, user *commonV1.User) context.Context {
+	return context.WithValue(ctx, userContextKey, user)
+}
+
 // ForwardSessionUUIDToGRPC adds the session UUID from the context to outgoing gRPC metadata
 func ForwardSessionUUIDToGRPC(ctx context.Context) context.Context {
 	sessionUUID, ok := GetSessionUUIDFromContext(ctx)

@@ -49,7 +49,7 @@ func (m *AuthMiddleware) Handle(next http.Handler) http.Handler {
 		ctx := r.Context()
 		ctx = grpcAuth.AddSessionUUIDToContext(ctx, sessionUUID)
 		// Also add the user to context
-		ctx = context.WithValue(ctx, grpcAuth.GetUserContextKey(), whoamiRes.User)
+		ctx = grpcAuth.AddUserToContext(ctx, whoamiRes.User)
 
 		// Pass control to the next handler
 		next.ServeHTTP(w, r.WithContext(ctx))
