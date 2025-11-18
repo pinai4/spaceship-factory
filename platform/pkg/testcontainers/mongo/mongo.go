@@ -12,7 +12,7 @@ import (
 
 const (
 	port           = "27017"
-	startupTimeout = 2 * time.Minute
+	startupTimeout = 5 * time.Minute
 
 	defaultContainerName = "mongo"
 

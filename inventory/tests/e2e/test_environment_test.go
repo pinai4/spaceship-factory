@@ -21,6 +21,7 @@ import (
 type TestEnvironment struct {
 	Network *network.Network
 	Mongo   *mongo.Container
+	Auth    *app.Container
 	App     *app.Container
 }
 

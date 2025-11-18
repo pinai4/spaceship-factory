@@ -32,6 +32,14 @@ func (s *E2ESuite) cleanupTestEnvironment() {
 		}
 	}
 
+	if s.env.Auth != nil {
+		if err := s.env.Auth.Terminate(s.suiteCtx); err != nil {
+			s.log.Error(s.suiteCtx, "failed to stop Auth(mock) container", logger.Error(err))
+		} else {
+			s.log.Info(s.suiteCtx, "🛑 Auth(mock) container stopped")
+		}
+	}
+
 	if s.env.Mongo != nil {
 		if err := s.env.Mongo.Terminate(s.suiteCtx); err != nil {
 			s.log.Error(s.suiteCtx, "failed to stop MongoDB container", logger.Error(err))

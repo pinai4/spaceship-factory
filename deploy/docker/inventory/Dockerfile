@@ -22,6 +22,7 @@ COPY order/go.mod order/go.sum ./order/
 COPY inventory/go.mod inventory/go.sum ./inventory/
 COPY assembly/go.mod assembly/go.sum ./assembly/
 COPY notification/go.mod notification/go.sum ./notification/
+COPY iam/go.mod iam/go.sum ./iam/
 
 # Download all dependencies listed in the module files
 RUN go mod download
@@ -34,6 +35,7 @@ COPY payment ./payment
 COPY inventory ./inventory
 COPY assembly ./assembly
 COPY notification ./notification
+COPY iam ./iam
 
 ## Download grpc-health-probe — a utility for checking the health of a gRPC service
 #ADD https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/v0.4.37/grpc_health_probe-linux-amd64 ./grpc-health-probe

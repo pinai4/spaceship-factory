@@ -5,6 +5,9 @@ package e2e
 import (
 	"context"
 
+	"google.golang.org/grpc/metadata"
+
+	grpcAuth "github.com/pinai4/spaceship-factory/platform/pkg/middleware/grpc"
 	inventoryV1 "github.com/pinai4/spaceship-factory/shared/pkg/proto/inventory/v1"
 )
 
@@ -24,7 +27,9 @@ func (s *E2ESuite) TestGetPart() {
 	partUUID, err := s.env.InsertTestPart(s.ctx, part)
 	s.Require().NoError(err)
 
-	resp, err := s.inventoryV1Client.GetPart(s.ctx, &inventoryV1.GetPartRequest{Uuid: partUUID})
+	authCtx := metadata.AppendToOutgoingContext(s.ctx, grpcAuth.SessionUUIDMetadataKey, authSessionUUID)
+
+	resp, err := s.inventoryV1Client.GetPart(authCtx, &inventoryV1.GetPartRequest{Uuid: partUUID})
 	s.Require().NoError(err)
 	s.Require().NotNil(resp.GetPart())
 	s.Require().Equal(partUUID, resp.GetPart().Uuid)
@@ -56,8 +61,10 @@ func (s *E2ESuite) TestListParts() {
 	part3UUID, err := s.env.InsertTestPart(s.ctx, part3)
 	s.Require().NoError(err)
 
+	authCtx := metadata.AppendToOutgoingContext(s.ctx, grpcAuth.SessionUUIDMetadataKey, authSessionUUID)
+
 	s.Run("Filter Empty", func() {
-		resp, err := s.inventoryV1Client.ListParts(s.ctx, &inventoryV1.ListPartsRequest{})
+		resp, err := s.inventoryV1Client.ListParts(authCtx, &inventoryV1.ListPartsRequest{})
 		s.Require().NoError(err)
 		s.Require().Equal(3, len(resp.GetParts()))
 		s.Require().ElementsMatch(
@@ -67,7 +74,7 @@ func (s *E2ESuite) TestListParts() {
 	})
 
 	s.Run("Filter by UUIDs", func() {
-		resp, err := s.inventoryV1Client.ListParts(s.ctx, &inventoryV1.ListPartsRequest{
+		resp, err := s.inventoryV1Client.ListParts(authCtx, &inventoryV1.ListPartsRequest{
 			Filter: &inventoryV1.PartsFilter{
 				Uuids: []string{part1UUID, part2UUID},
 			},

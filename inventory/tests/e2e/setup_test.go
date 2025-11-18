@@ -51,6 +51,8 @@ func (s *E2ESuite) initEnvironment() {
 
 	s.env = &TestEnvironment{}
 
+	projectRoot := path.GetProjectRoot()
+
 	// Step 1: Create a shared Docker network
 	generatedNetwork, err := network.NewNetwork(s.suiteCtx, projectName)
 	s.Require().NoError(err, "Failed to create shared network")
@@ -70,11 +72,24 @@ func (s *E2ESuite) initEnvironment() {
 	s.env.Mongo = generatedMongo
 	s.log.Info(s.suiteCtx, "✅ MongoDB container successfully started")
 
-	// Step 3: Start the application container
-	projectRoot := path.GetProjectRoot()
+	// Step 3: Start the Auth service (IAM module) mock container
+	authContainer, err := app.NewContainer(s.suiteCtx,
+		app.WithDockerfile(projectRoot, authMockDockerfile),
+		app.WithContainerName("auth"),
+		app.WithNetwork(generatedNetwork.Name()),
+		app.WithLogOutput(os.Stdout),
+		app.WithLogger(s.log),
+	)
+	s.Require().NoError(err, "Failed to start Auth(mock) container")
+	s.env.Auth = authContainer
+	s.log.Info(s.suiteCtx, "✅ Auth(mock) container successfully started")
 
+	// Step 4: Start the application container
 	appEnv := map[string]string{
 		envAppEnvKey: appEnvTest,
+		// Override Auth service host/port for connecting to the container from testcontainers
+		envIAMGRPCHostEnvKey: authContainer.Config().ContainerName,
+		envIAMGRPCPortEnvKey: authContainer.Config().Port,
 		// Override MongoDB host for connecting to the container from testcontainers
 		envMongoHostKey: generatedMongo.Config().ContainerName,
 		envMongoPortKey: generatedMongo.Config().Port,

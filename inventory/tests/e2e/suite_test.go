@@ -23,6 +23,8 @@ const (
 
 	// App environment variable keys
 	envAppEnvKey         = "APP_ENV"
+	envIAMGRPCHostEnvKey = "IAM_GRPC_HOST"
+	envIAMGRPCPortEnvKey = "IAM_GRPC_PORT"
 	envMongoImageNameKey = "MONGO_IMAGE_NAME"
 	envMongoHostKey      = "MONGO_HOST"
 	envMongoPortKey      = "MONGO_PORT"
@@ -33,9 +35,12 @@ const (
 
 	appEnvTest = "test"
 
-	appDockerfile = "deploy/docker/inventory/Dockerfile"
+	authMockDockerfile = "inventory/tests/mocks/auth/Dockerfile"
+	appDockerfile      = "deploy/docker/inventory/Dockerfile"
 
 	mongoPartsCollectionName = "parts"
+
+	authSessionUUID = "00000000-0000-0000-0000-222222222222"
 )
 
 type E2ESuite struct {

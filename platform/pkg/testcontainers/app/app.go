@@ -19,7 +19,7 @@ const (
 	defaultPort          = "50051"
 	defaultContainerName = "app"
 
-	startupTimeout = 2 * time.Minute
+	startupTimeout = 5 * time.Minute
 )
 
 type Logger interface {
@@ -96,7 +96,7 @@ func NewContainer(ctx context.Context, opts ...Option) (*Container, error) {
 
 	go streamContainerLogs(ctx, cfg.Logger, genericContainer, cfg.LogOutput)
 
-	cfg.Logger.Info(ctx, "App container started", logger.String("uri:", net.JoinHostPort(cfg.MappedHost, cfg.MappedPort)))
+	cfg.Logger.Info(ctx, fmt.Sprintf("%s container started", cfg.ContainerName), logger.String("uri:", net.JoinHostPort(cfg.MappedHost, cfg.MappedPort)))
 
 	return &Container{
 		container: genericContainer,
